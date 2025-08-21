@@ -1,5 +1,6 @@
 // src/middlewares/upload.js
 const multer = require('multer');
+const cloudinary = require('../config/cloudinary');
 const path = require('path');
 const ApiError = require('../utils/ApiError');
 const { StatusCodes } = require('http-status-codes');
@@ -8,23 +9,26 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 // Lưu trực tiếp vào Cloudinary với folder động
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => {
-    console.log("req: ", req);
-    
+  params:(req, file) => {
+    console.log("BODY", req.body);   // check type có tới không
+    console.log("FILE", file);       // check file meta
+
     // mặc định folder gốc
     let folder = "museum";
 
     //Nếu gửi lên kèm theo type => tạo folder con theo type
-    // ví dụ req.boody.type = 'employees' => museum/employees
-    if(req.body.type){
+    // ví dụ req.body.type = 'employees' => museum/employees
+    if (req.body.type) {
       folder = `${folder}/${req.body.type}`;
+    }else {
+      console.warn("⚠️ req.body.type missing, fallback to museum/");
     }
 
     return {
       folder,
+      resource_type: "image",                        // fix lỗi resource_type
       use_filename: true,
       unique_filename: true,
-      overwrite: false,
     }
   }
 })
