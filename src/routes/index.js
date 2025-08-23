@@ -19,10 +19,6 @@ const defaultRoutes = [
     route: packageRoute,
   },
   {
-    path: '/packages',
-    route: packageRoute,
-  },
-  {
     path: '/users',
     route: userRoute,
   },

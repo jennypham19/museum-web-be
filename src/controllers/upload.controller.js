@@ -3,8 +3,6 @@ const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 
 const uploadEmployeeImageSingle = catchAsync(async (req, res) => {
-        console.log("req.file:", req.file);
-        console.log("req.body:", req.body);
         try {
             // Nếu không có file
             if(!req.file) {
