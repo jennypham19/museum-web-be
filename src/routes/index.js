@@ -5,6 +5,7 @@ const express = require('express');
 const authRoute = require('../routes/auth.route');
 const packageRoute = require('../routes/package.route');
 const userRoute = require('../routes/user.route');
+const permissionRoute = require('../routes/permission.route')
 
 const router = express.Router();
 
@@ -22,6 +23,10 @@ const defaultRoutes = [
     path: '/users',
     route: userRoute,
   },
+  {
+    path: '/permissions',
+    route: permissionRoute
+  }
 ]
 
 // Dùng vòng lặp để gắn tất cả các route vào router chính
