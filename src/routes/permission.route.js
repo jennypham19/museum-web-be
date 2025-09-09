@@ -56,4 +56,9 @@ router
 // Tạo nhóm quyền
 router.post('/create-permission-group', authorize('admin'), validate(permissionValidation.createRoleGroup), permissionController.createRoleGroup);
 
+// Lấy chi tiết 1 nhóm quyền kèm với chức năng và thao tác
+router
+    .route('/role-group-with-menu-action/:id')
+    .get(authorize('admin'), validate(permissionValidation.getId), permissionController.getDetailRoleGroupWithMenuAndAction)
+
 module.exports = router;

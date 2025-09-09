@@ -67,6 +67,12 @@ const getPermissions = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công', data: permissions})
 })
 
+// Lấy chi tiết 1 nhóm quyền kèm chức năng và thao tác
+const getDetailRoleGroupWithMenuAndAction = catchAsync(async (req, res) => {
+    const permission = await permissionService.getRoleGroupWithMenuAndAction(req.params.id);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy chi tiết bản ghi thành công', data: permission});
+})
+
 module.exports = {
     createAction,
     getActions,
@@ -77,5 +83,6 @@ module.exports = {
     updateMenu,
     getMenuWithAction,
     createRoleGroup,
-    getPermissions
+    getPermissions,
+    getDetailRoleGroupWithMenuAndAction
 }

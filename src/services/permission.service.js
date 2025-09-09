@@ -372,6 +372,93 @@ const getPermissions = async (queryOptions) => {
 
 }
 
+const getPermissionById = async (id) => {
+    const roleGroup = await RoleGroup.findByPk(id);
+    if(!roleGroup) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bản ghi nào");
+    }
+    return roleGroup;
+}
+
+// Lấy chi tiết nhóm quyền cùng với chức năng và thao tác
+const getRoleGroupWithMenuAndAction = async (id) => {
+    try {
+        const roleGroup = await RoleGroup.findOne({
+            where: { id }, 
+            include: [
+                {
+                    model: RoleGroupMenu,
+                    as: 'roleGroupMenu',
+                    include: [
+                        { model: Menu, as: 'menu'}
+                    ]
+                },
+                {
+                    model: RoleGroupAction,
+                    as: 'roleGroupAction',
+                    include: [
+                        { model: MenuAction, as: 'menuAction'}
+                    ]
+                }
+            ]
+        });
+
+        if(!roleGroup) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.');
+        const rg = roleGroup.toJSON(); // ép vể object thường
+
+        const menus = rg.roleGroupMenu.map((rgm) => rgm.menu);
+        const actions = rg.roleGroupAction.map((rga) => rga.menuAction);
+
+        // Gom action theo menu_id
+        const actionByMenu = {};
+        actions.forEach((act) => {
+            if(!actionByMenu[act.menu_id]) actionByMenu[act.menu_id] = [];
+            actionByMenu[act.menu_id].push(act)
+        })
+
+        // Đệ quy build menu tree
+        const mapMenu = (menuList, parentCode = '') => {
+            return menuList
+                .filter((m) => m.parent_code === parentCode)
+                .map((menu) => {
+                    const node  = {
+                        id: menu.id,
+                        code: menu.code,
+                        name: menu.name,
+                        path: menu.path,
+                        icon: menu.icon
+                    };
+
+                    const menuAcions = (actionByMenu[menu.id] || []).map((act) => ({
+                        id: act.id,
+                        code: act.code,
+                        name: act.name
+                    }));
+                    if(menuAcions.length > 0) {
+                        node.actions = menuAcions;
+                    }
+
+                    const children = mapMenu(menuList, menu.code);
+                    if(children.length > 0) {
+                        node.children = children;
+                    };
+
+                    return node;
+                })
+        };
+
+        return {
+            id: rg.id,
+            name: rg.name,
+            permissions: mapMenu(menus)
+        };
+
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi xảy ra khi lấy chi tiết bản ghi: ' + error.message);
+    }
+}
+
 module.exports = {
     createAction,
     getActionById,
@@ -383,5 +470,6 @@ module.exports = {
     updateMenu,
     getMenuWithAction,
     createRoleGroup,
-    getPermissions
+    getPermissions,
+    getRoleGroupWithMenuAndAction
 }
