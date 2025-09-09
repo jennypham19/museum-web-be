@@ -38,4 +38,22 @@ router
     .route('/menu/:id')
     .get(authorize('admin'), validate(permissionValidation.getId), permissionController.getMenu)
 
+// Cập nhật chức năng
+router
+    .route('/update-menu/:id')
+    .put(authorize('admin'), validate(permissionValidation.updateMenu), permissionController.updateMenu)
+
+// Lấy danh sách chức năng kèm thao tác
+router
+    .route('/menu-with-action')
+    .get(authorize('admin'), permissionController.getMenuWithAction)
+
+// Lấy danh sách nhóm quyền
+router
+    .route('/role-groups')
+    .get(authorize('admin'), validate(permissionValidation.getQuery), permissionController.getPermissions)
+
+// Tạo nhóm quyền
+router.post('/create-permission-group', authorize('admin'), validate(permissionValidation.createRoleGroup), permissionController.createRoleGroup);
+
 module.exports = router;

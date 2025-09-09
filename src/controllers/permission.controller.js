@@ -36,10 +36,35 @@ const getMenus = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công', data: menus})
 })
 
-//Lấy danh sách chức năng
+//Lấy chi tiết 1 bản ghi chức năng
 const getMenu = catchAsync(async (req, res) => {
     const menu = await permissionService.getMenuById(req.params.id);
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy bản ghi thành công', data: menu})
+})
+
+// Chỉnh sửa chức năng
+const updateMenu = catchAsync(async (req, res) => {
+    const menu = await permissionService.updateMenu(req.params.id, req.body);
+    res.status(StatusCodes.CREATED).send({ success: true, message: 'Chỉnh sửa chức năng thành công', data: menu})
+})
+
+// Lấy danh sách chức năng kèm thao tác
+const getMenuWithAction = catchAsync(async (req, res) => {
+    const modules = await permissionService.getMenuWithAction();
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công', data: modules})
+})
+
+// Tạo nhóm quyền
+const createRoleGroup = catchAsync(async (req, res) => {
+  const roleGroup = await permissionService.createRoleGroup(req.body);
+  res.status(StatusCodes.CREATED).send({ success: true, message: 'Lưu nhóm quyền thành công', data: roleGroup});
+})
+
+// Lấy danh sách nhóm quyền
+const getPermissions = catchAsync(async (req, res) => {
+    const queryOptions = pick(req.query, ['page', 'limit', 'searchTerm']);
+    const permissions = await permissionService.getPermissions(queryOptions);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công', data: permissions})
 })
 
 module.exports = {
@@ -48,5 +73,9 @@ module.exports = {
     updateAction,
     createMenu,
     getMenus,
-    getMenu
+    getMenu,
+    updateMenu,
+    getMenuWithAction,
+    createRoleGroup,
+    getPermissions
 }

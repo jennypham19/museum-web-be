@@ -1,5 +1,5 @@
-const { Op } = require('sequelize');
-const { Action, Menu, MenuAction } = require('../models');
+const { Op, STRING } = require('sequelize');
+const { Action, Menu, MenuAction, RoleGroup, RoleGroupMenu, RoleGroupAction } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { StatusCodes } = require('http-status-codes');
 
@@ -104,9 +104,8 @@ const createMenu = async(menuBody) => {
                 name: act.name
             }, { transaction })
            }
-        }else{
-            throw new ApiError(StatusCodes.BAD_REQUEST, 'Nhóm thao tác không được để trống')
         }
+
         await transaction.commit();
         return menu;
     } catch (error) {
@@ -202,21 +201,175 @@ const updateMenu = async(id, menuBody) => {
         const menuUpdate = await Menu.findByPk(id, {transaction});
         if(!menuUpdate) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi');
         //Trường hợp chỉ cập nhập các trường trong Menu, không thêm hay xóa trong MenuAction
+        await menuUpdate.update({
+            code,
+            name,
+            path,
+            icon,
+            parent_code: parentCode,
+        }, {transaction})
+
         if(Array.isArray(actions)){
-            await menuUpdate.update({
-                code,
-                name,
-                path,
-                icon,
-                parent_code: parentCode,
-            }, {transaction})
+            //Trường hợp thêm bản ghi mới
+            //Tách action cũ (có id) và action mới (không có id)
+            const existingActionUpdate = actions.filter(el => el.id);
+            const newAction = actions.filter(el => !el.id);
+
+            //Update action có id
+            for(const act of existingActionUpdate){
+                await MenuAction.update(
+                {
+                    code: act.code,
+                    name: act.name
+                },
+                {
+                    where: { id: act.id, menu_id: id },
+                    transaction
+                }
+            )};
+
+            // Update action mới không có id
+            for (const act of newAction) {
+                // Tìm action trong bảng Actions => lấy id
+                let action = await Action.findOne({ where: { name: act.name }, transaction});
+                // Tạo quan hệ Menu - Action
+                await MenuAction.create({
+                    menu_id: id,
+                    action_id: action.id,
+                    code: act.code,
+                    name: act.name
+                }, { transaction })
+            }
         }
         await transaction.commit();
-        return menu;
+        return menuUpdate;
     } catch (error) {
         if( error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi thêm mới chức năng: ' + error.message);
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi chỉnh sửa chức năng: ' + error.message);
     }
+}
+
+// Lấy danh sách chức năng kèm thao tác
+const getMenuWithAction = async () => {
+    try {
+        const menus = await Menu.findAll({
+            include: [
+                {
+                    model: MenuAction,
+                    as: 'menusAction',
+                }
+            ],
+            order: [
+                [ 'id', 'ASC' ],
+                [ 'menusAction', 'id', 'ASC' ]
+            ]
+        });
+        const modules = menus.map((menu) => ({
+            ...menu.toJSON(),
+            parentCode: menu.parent_code,
+            menusAction: undefined,
+            actions: (menu.menusAction ?? [])
+                .filter((el) => el.menu_id === menu.id)
+                .map((action) => {
+                    return {
+                        id: action.id,
+                        code: action.code,
+                        name: action.name
+                    }
+                }),
+            children: [],
+        }));
+
+        // Build tree theo parent_code
+        const menuMap = {};
+        modules.forEach((menu) => {
+            menuMap[menu.code] = menu;
+        });
+
+        const roots = [];
+        modules.forEach((menu) => {
+            if(menu.parent_code) {
+                const parent = menuMap[menu.parent_code];
+                if(parent) {
+                    parent.children.push(menu);
+                }
+            }else {
+                roots.push(menu)
+            }
+        })
+        return roots;
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi lấy danh sách: ' + error.message);
+    }
+}
+
+// Đệ quy hàm lưu chức năng và thao tác
+const buildPermission = async (roleGroup, permission) => {
+    const menuMap = {};
+    const actionIds = [];
+    for(const item of permission) {
+        const menu = await Menu.findOne({ where: { code: item.code} });
+        if(!menu) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại chức năng này');
+        };
+
+        menuMap[item.code] = menu.id;
+        await RoleGroupMenu.create({ role_group_id: roleGroup.id, menu_id: menu.id});
+        for(const action of item. actions) {
+            const actionModel = await MenuAction.findOne({ where: { code: action.code} });
+            if(actionModel){
+                actionIds.push(actionModel.id);
+                await RoleGroupAction.create({ role_group_id: roleGroup.id, menu_action_id: actionModel.id})
+            }
+        }
+
+        await buildPermission(roleGroup, item.children);
+    }
+}
+
+// Tạo nhóm quyền
+const createRoleGroup = async ({ name, permission }) => {
+    try {
+        const roleGroup = await RoleGroup.create({ name });
+        await buildPermission(roleGroup, permission);
+        return roleGroup;
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xảy ra tạo nhóm quyền: ' + error.message);
+    }
+}
+
+// Lấy ra danh sách bản ghi nhóm quyền
+const getPermissions = async (queryOptions) => {
+    try {
+        const { page, limit, searchTerm } = queryOptions;
+        const offset = (page - 1) * limit;
+        
+        const whereClause = {};
+        if(searchTerm) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${searchTerm}%` }},
+            ]
+        }
+
+        const { count, rows: permissions } = await RoleGroup.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
+            order: [[ 'createdAt', 'ASC']]
+        })
+
+        const totalPages = Math.ceil(count/limit);
+        return {
+            permissions,
+            totalPages,
+            currentPage: page,
+            total: count
+        }
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi xảy ra khi lấy danh sách: ' + error.message)
+    }
+
 }
 
 module.exports = {
@@ -226,5 +379,9 @@ module.exports = {
     updateAction,
     createMenu,
     getMenus,
-    getMenuById
+    getMenuById,
+    updateMenu,
+    getMenuWithAction,
+    createRoleGroup,
+    getPermissions
 }

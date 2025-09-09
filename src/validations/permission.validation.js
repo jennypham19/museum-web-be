@@ -15,6 +15,7 @@ const getId = {
         id: Joi.number().integer().required()
     })
 }
+
 // Thêm mới 1 bản ghi
 const createAction = {
     body: Joi.object().keys({
@@ -63,10 +64,46 @@ const createMenu = {
     })
 }
 
+// Thêm mới 1 bản ghi
+const updateMenu = {
+    params: Joi.object().keys({
+        id: Joi.number().integer().required()
+    }),
+    body: Joi.object().keys({
+        code: Joi.string().required().messages({
+            'string.empty': 'Mã không được để trống',
+            'any.required': 'Mã là trường bắt buộc'
+        }),
+        name: Joi.string().required().messages({
+            'string.empty': 'Tên không được để trống',
+            'any.required': 'Tên là trường bắt buộc'
+        }),
+        path: Joi.string().required().messages({
+            'string.empty': 'Đường dẫn không được để trống',
+            'any.required': 'Đường dẫn là trường bắt buộc'
+        }),        
+        icon: Joi.string().required().messages({
+            'string.empty': 'Biểu tượng không được để trống',
+            'any.required': 'Biểu tượng là trường bắt buộc'
+        }),
+        actions: Joi.array().optional(),
+    })
+}
+
+// Tạo nhóm quyền
+const createRoleGroup = {
+    body: Joi.object({
+        name: Joi.string().required(),
+        permission: Joi.array().optional(),
+    })
+}
+
 module.exports = {
     createAction,
     getQuery,
     getId,
     updateAction,
-    createMenu
+    createMenu,
+    updateMenu,
+    createRoleGroup
 }
