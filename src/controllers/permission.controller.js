@@ -73,6 +73,33 @@ const getDetailRoleGroupWithMenuAndAction = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy chi tiết bản ghi thành công', data: permission});
 })
 
+// Chỉnh sửa nhóm quyền
+const updateRoleGroupWithMenuAndAction = catchAsync(async (req, res) => {
+    const permission = await permissionService.updateRoleGroupWithMenuAndAction(req.params.id, req.body);
+    res.status(StatusCodes.CREATED).send({ success: true, message: 'Chỉnh sửa chức năng thành công', data: permission})
+})
+
+// Lấy danh sách nhóm quyền có gắn chức năng
+const getRoleGroups = catchAsync(async (req, res) => {
+    const queryOptions = pick(req.query, ['page', 'limit', 'searchTerm']);
+    const roleGroups = await permissionService.queryRoleGroups(queryOptions);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công', data: roleGroups})
+})
+
+// Gán nhóm quyền cho user
+const assignRoleGroupToUser = catchAsync(async (req, res) => {
+    const { userId, roleGroupId } = req.body;
+    await permissionService.assignRoleGroupToUser(userId, roleGroupId);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Gán nhóm quyền thành công.'})
+})
+
+// Lấy nhóm quyền theo id user
+const getRoleGroupByUserId = catchAsync(async (req, res) => {
+    const userId = req.params.id;
+    const data = await permissionService.getRoleGroupByUserId(userId);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách nhóm quyền được gán thành công', data: data})
+})
+
 module.exports = {
     createAction,
     getActions,
@@ -84,5 +111,9 @@ module.exports = {
     getMenuWithAction,
     createRoleGroup,
     getPermissions,
-    getDetailRoleGroupWithMenuAndAction
+    getDetailRoleGroupWithMenuAndAction,
+    updateRoleGroupWithMenuAndAction,
+    getRoleGroups,
+    assignRoleGroupToUser,
+    getRoleGroupByUserId
 }

@@ -49,7 +49,7 @@ const logout = catchAsync(async (req, res) => {
         await authService.logout(refreshToken);
     }
     res.clearCookie('refreshToken');
-    res.status(StatusCodes.NO_CONTENT).send
+    res.status(StatusCodes.NO_CONTENT).send();
 })
 
 const refreshToken = catchAsync(async (req, res) => {

@@ -3,7 +3,10 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class User extends Model{
         static associate(models) {
-
+            User.hasOne(models.Information, {
+                foreignKey: 'user_id',
+                as: 'userInformation'
+            })
         }
     }
 
@@ -12,9 +15,9 @@ module.exports = (sequelize, DataTypes) => {
         password: { type: DataTypes.STRING, allowNull: false},
         full_name: { type: DataTypes.STRING, allowNull: false},
         role: {
-            type: DataTypes.ENUM('admin', 'employee'),
+            type: DataTypes.ENUM('admin', 'employee', 'member', 'guest'),
             allowNull: false,
-            defaultValue: 'employee'
+            defaultValue: 'member'
         },
         phone_number: { type: DataTypes.STRING, allowNull: true},
         avatar_url: { type: DataTypes.STRING, allowNull: true},

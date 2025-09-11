@@ -26,7 +26,10 @@ const getUsers = {
   query: Joi.object().keys({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(6), 
-    role: Joi.string().valid('admin', 'employee'),
+    role: Joi.alternatives().try(
+      Joi.array().items(Joi.string()), // role[]=employee&role[]=admin
+      Joi.string() // role=employee,admin
+    ),
     status: Joi.number().integer().optional(),
     searchTerm: Joi.string().optional(),
   }),

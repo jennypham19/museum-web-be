@@ -1,7 +1,8 @@
 const { Op, STRING } = require('sequelize');
-const { Action, Menu, MenuAction, RoleGroup, RoleGroupMenu, RoleGroupAction } = require('../models');
+const { Action, Menu, MenuAction, RoleGroup, RoleGroupMenu, RoleGroupAction, UserRole, sequelize } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { StatusCodes } = require('http-status-codes');
+const userService = require('../services/user.service');
 
 // Lấy 1 bản gi
 const getActionById = async (id) => {
@@ -304,10 +305,10 @@ const getMenuWithAction = async () => {
 }
 
 // Đệ quy hàm lưu chức năng và thao tác
-const buildPermission = async (roleGroup, permission) => {
+const buildPermission = async (roleGroup, permissions) => {
     const menuMap = {};
     const actionIds = [];
-    for(const item of permission) {
+    for(const item of permissions) {
         const menu = await Menu.findOne({ where: { code: item.code} });
         if(!menu) {
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại chức năng này');
@@ -328,10 +329,10 @@ const buildPermission = async (roleGroup, permission) => {
 }
 
 // Tạo nhóm quyền
-const createRoleGroup = async ({ name, permission }) => {
+const createRoleGroup = async ({ name, permissions }) => {
     try {
         const roleGroup = await RoleGroup.create({ name });
-        await buildPermission(roleGroup, permission);
+        await buildPermission(roleGroup, permissions);
         return roleGroup;
     } catch (error) {
         if(error instanceof ApiError) throw error;
@@ -372,14 +373,6 @@ const getPermissions = async (queryOptions) => {
 
 }
 
-const getPermissionById = async (id) => {
-    const roleGroup = await RoleGroup.findByPk(id);
-    if(!roleGroup) {
-        throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bản ghi nào");
-    }
-    return roleGroup;
-}
-
 // Lấy chi tiết nhóm quyền cùng với chức năng và thao tác
 const getRoleGroupWithMenuAndAction = async (id) => {
     try {
@@ -402,11 +395,16 @@ const getRoleGroupWithMenuAndAction = async (id) => {
                 }
             ]
         });
-
+        
         if(!roleGroup) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.');
         const rg = roleGroup.toJSON(); // ép vể object thường
 
-        const menus = rg.roleGroupMenu.map((rgm) => rgm.menu);
+        const menus = rg.roleGroupMenu.map((rgm) => {
+            const m = { ...rgm.menu };
+            if(m.parent_code === null) m.parent_code = '';
+            return m;
+        });
+
         const actions = rg.roleGroupAction.map((rga) => rga.menuAction);
 
         // Gom action theo menu_id
@@ -459,6 +457,292 @@ const getRoleGroupWithMenuAndAction = async (id) => {
     }
 }
 
+// Đệ quy upsert thao tác và chức năng
+const upsertMenusAndActions = async (id, menu, transaction) => {
+    // Menu
+    await RoleGroupMenu.findOrCreate({
+        where: { role_group_id: id, menu_id: menu.id },
+        defaults: { role_group_id: id, menu_id: menu.id },
+        transaction,
+    })
+
+    // Actions
+    if(menu.actions) {
+        for (const action of menu.actions) {
+            await RoleGroupAction.findOrCreate({
+                where: { role_group_id: id, menu_action_id: action.id },
+                defaults: { role_group_id: id, menu_action_id: action.id },
+                transaction,
+            })
+        }
+    }
+
+    // Children
+    if(menu.children) {
+        for(const child of menu.children){
+            await upsertMenusAndActions(id, child, transaction)
+        }
+    }
+}
+
+// chỉnh sửa nhóm quyền kèm với menu và thao tác
+const updateRoleGroupWithMenuAndAction = async(id, roleGroupBody) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const roleGroup = await RoleGroup.findByPk(id, { transaction });
+        if(!roleGroup) {
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Nhóm quyền không tồn tại');
+        }
+
+        // cập nhật tên nhóm
+        roleGroup.name = roleGroupBody.name;
+        await roleGroup.save({ transaction });
+
+        // upsert permissions
+        if(roleGroupBody.permissions){
+            for(const menu of roleGroupBody.permissions) {
+                await upsertMenusAndActions(id, menu, transaction);
+            }
+        };
+
+        await transaction.commit();
+
+        const roleGroupFormatted = await getRoleGroupWithMenuAndAction(roleGroup.id);
+        return roleGroupFormatted;
+    } catch (error) {
+        await transaction.rollback();
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi xảy ra chỉnh sửa nhóm quyền: ' + error.message);
+    }
+}
+
+// Lấy ra danh sách nhóm quyền có gắn chức năng
+const queryRoleGroups = async(queryOptions) => {
+    try {
+        const { page, limit, searchTerm } = queryOptions;
+        const offset = (page - 1) * limit;
+        
+        const whereClause = {};
+        if(searchTerm) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${searchTerm}%` }},
+            ]
+        }
+        const { count, rows: roleGroups } = await RoleGroup.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: RoleGroupMenu,
+                    as: 'roleGroupMenu',
+                    include: [
+                        { model: Menu, as: 'menu'}
+                    ]
+                },
+                {
+                    model: RoleGroupAction,
+                    as: 'roleGroupAction',
+                    include: [
+                        { model: MenuAction, as: 'menuAction'}
+                    ]
+                }
+            ],
+            limit,
+            offset,
+            order: [[ 'id', 'ASC']],
+            distinct: true // chỉ tính count trong RoleGroups
+        });
+
+        const formattedRoleGroups = roleGroups.map((roleGroup) => {
+            const rg = roleGroup.toJSON();
+            const menus = rg.roleGroupMenu.map((rgm) => {
+                const m = { ...rgm.menu };
+                if(m.parent_code === null) m.parent_code = '';
+                return m;
+            });
+
+            const actions = rg.roleGroupAction.map((rga) => rga.menuAction);
+
+            // Gom action theo menu_id
+            const actionByMenu = {};
+            actions.forEach((act) => {
+                if(!actionByMenu[act.menu_id]) actionByMenu[act.menu_id] = [];
+                actionByMenu[act.menu_id].push(act)
+            })
+
+            // Đệ quy build menu tree
+            const mapMenu = (menuList, parentCode = '') => {
+                return menuList
+                    .filter((m) => m.parent_code === parentCode)
+                    .map((menu) => {
+                        const node  = {
+                            id: menu.id,
+                            code: menu.code,
+                            name: menu.name,
+                            path: menu.path,
+                            icon: menu.icon
+                        };
+
+                        const menuAcions = (actionByMenu[menu.id] || []).map((act) => ({
+                            id: act.id,
+                            code: act.code,
+                            name: act.name
+                        }));
+                        if(menuAcions.length > 0) {
+                            node.actions = menuAcions;
+                        }
+
+                        const children = mapMenu(menuList, menu.code);
+                        if(children.length > 0) {
+                            node.children = children;
+                        };
+
+                        return node;
+                    })
+            };
+        
+            return {
+                id: rg.id,
+                name: rg.name,
+                permissions: mapMenu(menus)
+            };
+        });
+
+        const totalPages = Math.ceil(count/limit);
+        return {
+            roleGroups: formattedRoleGroups,
+            totalPages,
+            currentPage: page,
+            total: count
+        }
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Có lỗi xảy ra khi lấy danh sách: ' + error.message)
+    }
+}
+
+// Lấy chi tiết nhóm quyền
+const getRoleGroupById = async (id) => {
+    const roleGroup = await RoleGroup.findByPk(id);
+    if (!roleGroup) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy nhóm quyền');
+    }
+    return roleGroup;
+}
+
+// Gán nhóm quyền cho user
+const assignRoleGroupToUser = async(userId, roleGroupId) => {
+    const user = await userService.getUserById(userId);
+    const roleGroup = await getRoleGroupById(roleGroupId);
+    try {
+        const existingUserRole = await UserRole.findOne({ where: { user_id: userId }});
+        if(existingUserRole) {
+            // Nếu đã có nhóm quyền thì cập nhật
+            existingUserRole.role_group_id = roleGroupId;
+            await existingUserRole.save();
+        }else{
+            // Nếu chưa có thì tạo mới
+            await UserRole.create({ user_id: userId, role_group_id: roleGroupId });
+        }
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, `Gán ${roleGroup.name} cho ${user.fullName} thất bại: ` + error.message)
+    }
+}
+
+// Map nhóm quyền theo dang tree
+const mapPermissionByTree = (roleGroup) => {
+    const rg = roleGroup.toJSON(); // ép vể object thường
+    const menus = rg.roleGroupMenu.map((rgm) => {
+            const m = { ...rgm.menu };
+            if(m.parent_code === null) m.parent_code = '';
+            return m;
+        });
+
+        const actions = rg.roleGroupAction.map((rga) => rga.menuAction);
+
+        // Gom action theo menu_id
+        const actionByMenu = {};
+        actions.forEach((act) => {
+            if(!actionByMenu[act.menu_id]) actionByMenu[act.menu_id] = [];
+            actionByMenu[act.menu_id].push(act)
+        })
+
+        // Đệ quy build menu tree
+        const mapMenu = (menuList, parentCode = '') => {
+            return menuList
+                .filter((m) => m.parent_code === parentCode)
+                .map((menu) => {
+                    const node  = {
+                        id: menu.id,
+                        code: menu.code,
+                        name: menu.name,
+                        path: menu.path,
+                        icon: menu.icon
+                    };
+
+                    const menuAcions = (actionByMenu[menu.id] || []).map((act) => ({
+                        id: act.id,
+                        code: act.code,
+                        name: act.name
+                    }));
+                    if(menuAcions.length > 0) {
+                        node.actions = menuAcions;
+                    }
+
+                    const children = mapMenu(menuList, menu.code);
+                    if(children.length > 0) {
+                        node.children = children.sort((a, b) => a.code.localeCompare(b.code));
+                    };
+
+                    return node;
+                })
+                // sắp xếp cấp hiện tại theo code
+                .sort((a, b) => a.code.localeCompare(b.code))
+        };
+
+        return {
+            id: rg.id,
+            name: rg.name,
+            permissions: mapMenu(menus)
+        };
+}
+
+// Lấy nhóm quyền theo id user
+const getRoleGroupByUserId = async(userId) => {
+    try {
+        const roleGroup = await RoleGroup.findOne({
+            include: [
+                {
+                    model: UserRole,
+                    as: 'roleGroupUser',
+                    where: {
+                        user_id: userId
+                    }
+                },
+                {
+                    model: RoleGroupMenu,
+                    as: 'roleGroupMenu',
+                    include: [
+                        { model: Menu, as: 'menu'}
+                    ]
+                },
+                {
+                    model: RoleGroupAction,
+                    as: 'roleGroupAction',
+                    include: [
+                        { model: MenuAction, as: 'menuAction'}
+                    ]
+                }
+            ]
+        });
+        
+        if(!roleGroup) throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.');
+        return mapPermissionByTree(roleGroup);
+
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi xảy ra khi lấy chi tiết bản ghi: ' + error.message);
+    }
+}
+
 module.exports = {
     createAction,
     getActionById,
@@ -471,5 +755,10 @@ module.exports = {
     getMenuWithAction,
     createRoleGroup,
     getPermissions,
-    getRoleGroupWithMenuAndAction
+    getRoleGroupWithMenuAndAction,
+    updateRoleGroupWithMenuAndAction,
+    queryRoleGroups,
+    assignRoleGroupToUser,
+    getRoleGroupByUserId,
+    mapPermissionByTree
 }

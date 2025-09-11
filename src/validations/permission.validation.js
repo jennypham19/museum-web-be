@@ -94,9 +94,35 @@ const updateMenu = {
 const createRoleGroup = {
     body: Joi.object({
         name: Joi.string().required(),
-        permission: Joi.array().optional(),
+        permissions: Joi.array().optional(),
     })
 }
+
+// Chỉnh sửa nhóm quyền
+const updateRoleGroup = {
+    params: Joi.object().keys({
+        id: Joi.number().integer().required()
+    }),
+    body: Joi.object({
+        name: Joi.string().required(),
+        permissions: Joi.array().optional(),
+    })
+}
+
+// Gán nhóm quyền
+const assignRoleGroupToUser = {
+    body: Joi.object({
+        userId: Joi.number().required(),
+        roleGroupId: Joi.number().required(),
+    })
+}
+
+// Lấy nhóm quyền theo id user
+const getRoleGroupToUser = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required(),
+  }),
+};
 
 module.exports = {
     createAction,
@@ -105,5 +131,8 @@ module.exports = {
     updateAction,
     createMenu,
     updateMenu,
-    createRoleGroup
+    createRoleGroup,
+    updateRoleGroup,
+    assignRoleGroupToUser,
+    getRoleGroupToUser
 }

@@ -1,7 +1,8 @@
-const { User, Token } = require('../models');
+const { User, Token, RoleGroup, UserRole, RoleGroupMenu, RoleGroupAction, Menu, MenuAction } = require('../models');
 const bcrypt = require('bcryptjs');
 const { StatusCodes } = require('http-status-codes');
 const ApiError = require('../utils/ApiError');
+const permissionService = require('../services/permission.service');
 
 const loginWithEmailAndPassword = async (email, password) => {
     try {
@@ -12,7 +13,39 @@ const loginWithEmailAndPassword = async (email, password) => {
         if(user.is_active === 0) {
             throw new ApiError(StatusCodes.FORBIDDEN, 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên');
         }
-        return user;
+        const roleGroup = await RoleGroup.findOne({
+            include: [
+                {
+                    model: UserRole,
+                    as: 'roleGroupUser',
+                    where: {
+                        user_id: user.id
+                    }
+                },
+                {
+                    model: RoleGroupMenu,
+                    as: 'roleGroupMenu',
+                    include: [
+                        { model: Menu, as: 'menu'}
+                    ]
+                },
+                {
+                    model: RoleGroupAction,
+                    as: 'roleGroupAction',
+                    include: [
+                        { model: MenuAction, as: 'menuAction'}
+                    ]
+                }
+            ]
+        });
+        
+        if(!roleGroup) throw new ApiError(StatusCodes.FORBIDDEN, `Tài khoản ${user.full_name} chưa được gán quyền. Vui lòng liên hệ quản trị viên để được gán quyền`);
+        const roleGroupFormatted = await permissionService.mapPermissionByTree(roleGroup);
+        const userFormatted = {
+          ...user.toJSON(),
+          permissions: roleGroupFormatted
+        }
+        return userFormatted; 
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -25,7 +58,7 @@ const loginWithEmailAndPassword = async (email, password) => {
 const register = async (userBody) => {
     const { email, password } = userBody;
     const clientFullName = userBody.full_name;
-    const defaultRole = 'employee';
+    const defaultRole = 'member';
     if (!clientFullName) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'Họ và tên (fullName) là bắt buộc.');
     }

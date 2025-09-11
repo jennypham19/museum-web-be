@@ -18,7 +18,7 @@ const createUser = async (userBody) => {
     }
     // Hash bằng bcrypt
     const hashedPassword = await bcrypt.hash(userBody.password, 10);
-    const user = await User.create({ ...userBody, password: hashedPassword, is_active: 1, is_change_type: 1});
+    const user = await User.create({ ...userBody, password: hashedPassword, is_active: 1, is_change_type: 0});
     user.password = undefined; // Không trả về password
     return user;
 }
@@ -28,9 +28,16 @@ const queryUsers = async (queryOptions) => {
     try {
         const { page, limit, role, status, searchTerm } = queryOptions;
         const offset = (page - 1) * limit;
-        const whereClause = {
-            role: role
+        const whereClause = {};
+
+        if(role) {
+        if (Array.isArray(role)) {
+            whereClause.role = { [Op.in]: role }
+        } else {
+            whereClause.role = { [Op.in]: [role] }
         }
+}
+
         if(searchTerm){
             whereClause[Op.or] = [
                 { email: { [Op.iLike]: `%${searchTerm}%`}},
