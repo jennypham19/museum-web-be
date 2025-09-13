@@ -13,11 +13,16 @@ const queryPackages = async (queryOptions) => {
         whereClause[Op.or] = [
             { title: { [Op.iLike]: `%${searchTerm}%` }},
             { price: { [Op.iLike]: `%${searchTerm}%` }},
-            { members: { [Op.iLike]: `%${searchTerm}%` }},
-            { guests: { [Op.iLike]: `%${searchTerm}%` }},
             { includes: { [Op.iLike]: `%${searchTerm}%` }},
             { benefits: { [Op.iLike]: `%${searchTerm}%` }},
         ]
+    }
+
+    if (!isNaN(searchTerm)) {
+        whereClause[Op.or] = [
+            { members: Number(searchTerm) },
+            { guests: Number(searchTerm) }
+        ];
     }
     
     const { count, rows: packages } = await Package.findAndCountAll({

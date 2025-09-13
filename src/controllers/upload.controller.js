@@ -11,10 +11,10 @@ const uploadEmployeeImageSingle = catchAsync(async (req, res) => {
 
             // ⚠️ log raw error
             if (!req.file.path) {
-            console.error("Cloudinary upload failed. Full file object:", req.file);
-            throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Upload lên Cloudinary thất bại.");
+                console.error("Cloudinary upload failed. Full file object:", req.file);
+                throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Upload lên Cloudinary thất bại.");
             }
-
+            
             const imageUrl = req.file.path; // link ảnh Cloudinary
             const folder = req.body.type || 'museum' // folder đã lưu
             // Sau khi upload thành công, multer-storage-cloudinary sẽ trả về link tại req.file.path

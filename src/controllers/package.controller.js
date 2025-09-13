@@ -6,8 +6,8 @@ const pick = require('../utils/pick');
 
 //Thêm mới 1 bản ghi
 const createPackage = catchAsync(async (req, res) => {
-  const post = await packageService.createPackage(req.body, req.user.id);
-  res.status(StatusCodes.CREATED).send({ success: true, message: 'Tạo gói thành viên thành công.', data: post });
+  const package = await packageService.createPackage(req.body);
+  res.status(StatusCodes.CREATED).send({ success: true, message: 'Tạo gói thành viên thành công.', data: package });
 });
 
 // Lấy danh sách

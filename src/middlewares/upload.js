@@ -10,6 +10,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const storage = new CloudinaryStorage({
   cloudinary,
   params:(req, file) => {
+    
     // mặc định folder gốc
     let folder = "museum";
 
