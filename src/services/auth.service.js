@@ -95,6 +95,7 @@ const logout = async (refreshToken) => {
     await refreshTokenDoc.destroy();
 }
 
+
 module.exports = {
     loginWithEmailAndPassword,
     register,

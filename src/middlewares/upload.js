@@ -13,7 +13,6 @@ const storage = new CloudinaryStorage({
     
     // mặc định folder gốc
     let folder = "museum";
-
     //Nếu gửi lên kèm theo type => tạo folder con theo type
     // ví dụ req.body.type = 'employees' => museum/employees
     if (req.body.type) {
@@ -24,7 +23,7 @@ const storage = new CloudinaryStorage({
 
     return {
       folder,
-      resource_type: "image",                        // fix lỗi resource_type
+      resource_type: "auto",                        // fix lỗi resource_type
       use_filename: true,
       unique_filename: true,
     }

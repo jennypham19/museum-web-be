@@ -2,7 +2,10 @@ const { StatusCodes } = require('http-status-codes');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 
-const uploadEmployeeImageSingle = catchAsync(async (req, res) => {
+const uploadImageSingle = catchAsync(async (req, res) => {
+    console.log("req.file: ", req.file);
+    console.log("req.body: ", req.body);
+    
         try {
             // Nếu không có file
             if(!req.file) {
@@ -27,6 +30,7 @@ const uploadEmployeeImageSingle = catchAsync(async (req, res) => {
                 }
             })
         } catch (error) {
+            if(error instanceof ApiError) throw error;
             console.error("Upload error:", error); // log cụ thể lỗi
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Đã có lỗi xảy ra ' + error.message);
         }
@@ -54,6 +58,6 @@ const uploadEmployeeImageMultiple = catchAsync(async (req, res) => {
 
 
 module.exports = {
-    uploadEmployeeImageSingle,
+    uploadImageSingle,
     uploadEmployeeImageMultiple
 }
