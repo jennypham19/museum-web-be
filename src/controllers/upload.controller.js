@@ -3,9 +3,6 @@ const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 
 const uploadImageSingle = catchAsync(async (req, res) => {
-    console.log("req.file: ", req.file);
-    console.log("req.body: ", req.body);
-    
         try {
             // Nếu không có file
             if(!req.file) {
@@ -20,13 +17,17 @@ const uploadImageSingle = catchAsync(async (req, res) => {
             
             const imageUrl = req.file.path; // link ảnh Cloudinary
             const folder = req.body.type || 'museum' // folder đã lưu
+            const fileName = req.file.filename; // lấy tên ảnh
             // Sau khi upload thành công, multer-storage-cloudinary sẽ trả về link tại req.file.path
             res.status(StatusCodes.OK).send({
                 success: true,
-                message: 'Upload ảnh thành công',
+                message: 'Upload file thành công',
                 data: {
-                    imageUrl,
-                    folder
+                    file: {
+                        imageUrl,
+                        fileName
+                    },
+                    folder,
                 }
             })
         } catch (error) {
@@ -41,14 +42,17 @@ const uploadEmployeeImageMultiple = catchAsync(async (req, res) => {
             if(!req.files || req.files.length === 0){
                 throw new ApiError(StatusCodes.BAD_REQUEST, 'Vui lòng chọn một file để upload.');
             }
-            const fileUrls = req.files.map(file => file.path);
+            const files = req.files.map(file => ({
+                url: file.path,
+                name: file.filename
+            }));
             const folder = req.body.type || 'museum' // folder đã lưu
             res.status(StatusCodes.OK).send({
                 success: true,
-                message: 'Upload ảnh thành công',
+                message: 'Upload file thành công',
                 data: {
-                    files: fileUrls,
-                    folder
+                    files,
+                    folder,
                 }
             })
         } catch (error) {

@@ -30,19 +30,8 @@ const storage = new CloudinaryStorage({
   }
 })
 
-// Kiểm tra loại file
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image')) {
-    cb(null, true);
-  } else {
-    cb(new ApiError(StatusCodes.BAD_REQUEST, 'Chỉ cho phép upload file ảnh!'), false);
-  }
-};
-
 const upload = multer({
   storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 1024 * 1024 * 5 } // Giới hạn 5MB
 });
 
 module.exports = upload;
