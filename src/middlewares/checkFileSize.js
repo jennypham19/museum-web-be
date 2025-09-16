@@ -51,9 +51,9 @@ const checkFileSize = (req, res, next) => {
         );
       }
     } else if (file.mimetype.startsWith("video")) {
-      if (file.size > 100 * 1024 * 1024) {
+      if (file.size > 500 * 1024 * 1024) {
         return next(
-          new ApiError(StatusCodes.BAD_REQUEST, "Video vượt quá dung lượng 100MB!")
+          new ApiError(StatusCodes.BAD_REQUEST, "Video vượt quá dung lượng 500MB!")
         );
       }
     } else {

@@ -14,6 +14,10 @@ module.exports = (sequelize, DataTypes) => {
             Post.hasMany(models.Video, {
                 foreignKey: 'post_id',
                 as: 'postVideos'
+            });
+            Post.belongsTo(models.User, {
+                foreignKey: 'author_id',
+                as: 'postUser'
             })
         }
     };
@@ -78,6 +82,11 @@ module.exports = (sequelize, DataTypes) => {
         // Cột rejection_reason: lý do từ chối, kiểu chuỗi, có thể null
         rejection_reason: {
             type: DataTypes.STRING,
+        },
+        // Cột author_id: khóa ngoại, liên kết bảng Users, không được null
+        author_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false
         }
     }, {
         sequelize,

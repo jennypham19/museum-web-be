@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
             User.hasOne(models.Information, {
                 foreignKey: 'user_id',
                 as: 'userInformation'
+            }),
+            User.hasMany(models.Post, {
+                foreignKey: 'author_id',
+                as: 'userPost'
             })
         }
     }
@@ -29,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
         is_change_type: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            defaultValue: 1
+            defaultValue: 1 // 1: Chưa đổi mật khẩu, 0: Đã đổi mật khẩu
         }
     }, {
         sequelize,

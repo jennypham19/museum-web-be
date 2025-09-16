@@ -28,7 +28,7 @@ router.post(
 // upload nhiều video
 router.post(
     '/upload-videos', 
-    upload.array('videos', 10), 
+    upload.array('videos', 5), 
     checkFileSize.checkFilesSize,
     uploadController.uploadEmployeeImageMultiple
 );

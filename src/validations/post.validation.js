@@ -33,17 +33,17 @@ const createPost = {
         'any.required': 'Đường dẫn ảnh là bắt buộc.',
     }),
     nameUrl: Joi.string().optional(),
+    authorName: Joi.string().optional(),
     content: Joi.string().required().messages({
       'string.empty': 'Nội dung không được để trống.',
       'any.required': 'Nội dung là trường bắt buộc.',
     }),
-    authorName: Joi.string().required().messages({
-        'string.empty': 'Tên tác giả không được để trống.',
-        'any.required': 'Tên tác giả là trường bắt buộc.',
-    }),
+    authorId: Joi.number().integer().required(),
     source: Joi.object({
-      name: Joi.string().optional(),
-      url: Joi.string().required()
+      link_facebook: Joi.string().optional(),
+      link_instagram: Joi.string().optional(),
+      link_youtube: Joi.string().optional(),
+      link_web: Joi.string().optional()
     }).optional().allow(null),
     images: Joi.array().items(
         Joi.object({

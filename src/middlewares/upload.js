@@ -32,6 +32,39 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({
   storage: storage,
+  limits: {
+    fileSize: 500 * 1024 * 1024, // Giới hạn chung 100MB (Cloudinary free cũng max ~100MB)
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      if (file.size > 5 * 1024 * 1024) {
+        return cb(
+          new ApiError(StatusCodes.BAD_REQUEST, "Ảnh vượt quá dung lượng 5MB!"),
+          false
+        );
+      }
+      return cb(null, true);
+    } else if (file.mimetype.startsWith("video/")) {
+      if (file.size > 500 * 1024 * 1024) {
+        return cb(
+          new ApiError(
+            StatusCodes.BAD_REQUEST,
+            "Video vượt quá dung lượng 100MB!"
+          ),
+          false
+        );
+      }
+      return cb(null, true);
+    } else {
+      return cb(
+        new ApiError(
+          StatusCodes.BAD_REQUEST,
+          "Chỉ cho phép upload file ảnh hoặc video!"
+        ),
+        false
+      );
+    }
+  },
 });
 
 module.exports = upload;
