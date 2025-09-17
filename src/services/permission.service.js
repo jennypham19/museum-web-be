@@ -110,6 +110,7 @@ const createMenu = async(menuBody) => {
         await transaction.commit();
         return menu;
     } catch (error) {
+        await transaction.rollback();
         if( error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Lỗi khi thêm mới chức năng: ' + error.message);
     }
@@ -261,7 +262,7 @@ const getMenuWithAction = async () => {
                 }
             ],
             order: [
-                [ 'id', 'ASC' ],
+                [ 'code', 'ASC' ],
                 [ 'menusAction', 'id', 'ASC' ]
             ]
         });
@@ -383,7 +384,11 @@ const getRoleGroupWithMenuAndAction = async (id) => {
                     model: RoleGroupMenu,
                     as: 'roleGroupMenu',
                     include: [
-                        { model: Menu, as: 'menu'}
+                        { 
+                            model: Menu, 
+                            as: 'menu',
+                            order: [['roleGroupMenu', 'menu', 'code', 'ASC']]
+                        }
                     ]
                 },
                 {
