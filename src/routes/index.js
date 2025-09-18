@@ -8,6 +8,7 @@ const userRoute = require('../routes/user.route');
 const permissionRoute = require('../routes/permission.route');
 const postRoute = require('../routes/post.route');
 const uploadRoute = require('../routes/upload.route');
+const displayRoute = require('../routes/display.route');
 
 const router = express.Router();
 
@@ -36,6 +37,10 @@ const defaultRoutes = [
   {
     path: '/image',
     route: uploadRoute
+  },
+  {
+    path: '/display',
+    route: displayRoute
   }
 ]
 

@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
             Video.belongsTo(models.Post, {
                 foreignKey: 'post_id',
                 as: 'videosPost'
+            }),
+            Video.belongsTo(models.Event, {
+                foreignKey: 'event',
+                as: 'videosEvent'
             })
         }
     };
@@ -25,7 +29,12 @@ module.exports = (sequelize, DataTypes) => {
         url: {
             type: DataTypes.STRING,
             allowNull: false
-        }
+        },
+        // Cột event_id: khóa ngoại, kiên kết bảng Events, không được null
+        event_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
     }, {
         sequelize,
         modelName: 'Video'

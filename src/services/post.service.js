@@ -3,7 +3,6 @@ const { StatusCodes } = require('http-status-codes');
 const ApiError = require('../utils/ApiError');
 // Thêm mới bài viết bộ sưu tập
 const createPostCollection = async(postBody) => {
-    console.log("postBody: ",postBody);
     const transaction = await sequelize.transaction();
     const { category, date, title, summary, author, period, nameUrl, imageUrl, content, source, images, videos, authorId } = postBody;
     try {

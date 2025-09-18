@@ -3,17 +3,17 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class Painting extends Model{
         static associate(models) {
-            Painting.hasMany(models.Image, {
+            Painting.hasOne(models.ImagePainting, {
                 foreignKey: 'painting_id',
-                as: 'imagesPainting'
-            });
-            Painting.belongsTo(models.Exhibition, {
-                foreignKey: 'exhibition_id',
-                as: 'exhibitionPaintings'
-            });
-            Painting.belongsTo(models.Collection, {
-                foreignKey: 'collection_id',
-                as: 'collectionPaintings'
+                as: 'paintingImage'
+            }),
+            Painting.hasMany(models.PaintingCollection, {
+                foreignKey: 'painting_id',
+                as: 'paintingsCollection'
+            }),
+            Painting.hasMany(models.PaintingExhibition, {
+                foreignKey: 'painting_id',
+                as: 'paintingsExhibition'
             })
         }
     };
@@ -43,18 +43,7 @@ module.exports = (sequelize, DataTypes) => {
         description: {
             type: DataTypes.TEXT,
             allowNull: false
-        },
-        // Cột collection_id: khóa ngoại, liên kết bảng Collections, không được null
-        collection_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false
-        },
-        // Cột exhibition_id: khóa ngoại, liên kết bảng Exhibitions, không được null
-        exhibition_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false
         }
-
     }, {
         sequelize,
         modelName: 'Painting'

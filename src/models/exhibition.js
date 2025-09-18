@@ -3,11 +3,15 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class Exhibition extends Model {
         static associate(models) {
-            Exhibition.hasMany(models.Painting, {
+            Exhibition.hasOne(models.PaintingExhibition, {
                 foreignKey: 'exhibition_id',
                 as: 'exhibitionPaintings'
-            });
-            Exhibition.hasMany(models.Collection, {
+            }),
+            Exhibition.hasOne(models.EventExhibition, {
+                foreignKey: 'exhibition_id',
+                as: 'exhibitionEvents'
+            }),
+            Exhibition.hasOne(models.CollectionExhibition, {
                 foreignKey: 'exhibition_id',
                 as: 'exhibitionCollections'
             })

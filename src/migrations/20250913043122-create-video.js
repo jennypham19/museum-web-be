@@ -11,16 +11,6 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true
       },
-      // Cột post_id: khóa ngoại, kiên kết bảng Posts, không được null
-      post_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'Posts', key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      },
       // Cột name: tên video, kiểu chuỗi, không được null
       name: {
         type: Sequelize.STRING,
