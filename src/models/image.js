@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
             Image.belongsTo(models.Post, {
                 foreignKey: 'post_id',
                 as: 'imagesPost'
+            });
+            Image.belongsTo(models.Painting, {
+                foreignKey: 'painting_id',
+                as: 'imagesPainting'
             })
         }
     };
@@ -24,6 +28,11 @@ module.exports = (sequelize, DataTypes) => {
         // Cột url: đường dẫn ảnh, kiểu chuỗi, không được null
         url: {
             type: DataTypes.STRING,
+            allowNull: false
+        },
+        // Cột painting_id: khóa ngoại, liên kết bảng Paintings, không được null
+        painting_id: {
+            type: DataTypes.INTEGER,
             allowNull: false
         }
     }, {
