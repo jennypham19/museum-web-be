@@ -17,7 +17,7 @@ module.exports = {
         model: 'Posts', key: 'id'
       },
       onUpdate: 'CASCADE',
-      onDelete: 'NOT NULL'
+      onDelete: 'SET NULL'
     })
   }
 };

@@ -33,7 +33,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 500 * 1024 * 1024, // Giới hạn chung 100MB (Cloudinary free cũng max ~100MB)
+    fileSize: 100 * 1024 * 1024, // Giới hạn chung 100MB (Cloudinary free cũng max ~100MB)
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
@@ -45,7 +45,7 @@ const upload = multer({
       }
       return cb(null, true);
     } else if (file.mimetype.startsWith("video/")) {
-      if (file.size > 500 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         return cb(
           new ApiError(
             StatusCodes.BAD_REQUEST,

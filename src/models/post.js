@@ -7,10 +7,6 @@ module.exports = (sequelize, DataTypes) => {
                 foreignKey: 'post_id',
                 as: 'postSource'
             });
-            Post.hasMany(models.Image, {
-                foreignKey: 'post_id',
-                as: 'postImages'
-            });
             Post.hasMany(models.Video, {
                 foreignKey: 'post_id',
                 as: 'postVideos'

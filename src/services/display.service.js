@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
 const { sequelize, Painting, Image, ImagePainting } = require("../models");
+const { Op } = require("sequelize");
 
 // Thêm mới tác phẩm
 const createPainting = async (paintingBody) => {
@@ -33,6 +34,29 @@ const createPainting = async (paintingBody) => {
     }
 }
 
+// Lấy ra danh sách + search tác phẩm
+const queryListPaintings = async(queryOptions) => {
+    const { page, limit, searchTerm } = queryOptions;
+    try {
+        const offset = (page - 1) * limit;
+        const whereClause = {};
+        if(searchTerm) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${searchTerm}%` }},
+                { author: { [Op.iLike]: `%${searchTerm}%` }},
+                { period: { [Op.iLike]: `%${searchTerm}%` }}
+            ]
+        };
+
+        const { count, rows: paintings } = await Painting.findAndCountAll({
+            
+        })
+    } catch (error) {
+        
+    }
+}
+
 module.exports = {
-    createPainting
+    createPainting,
+    queryListPaintings
 }

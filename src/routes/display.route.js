@@ -13,4 +13,9 @@ router
     .route('/create-painting')
     .post(validate(displayValidation.createPainting), displayController.createPainting)
 
+
+// Lấy ra danh sách + search tác phẩm
+router
+    .route('/get-list-paintings')
+    .get(validate(displayValidation.getQuery), displayController.getListPaintings)
 module.exports = router;

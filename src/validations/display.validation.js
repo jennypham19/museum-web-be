@@ -33,6 +33,24 @@ const createPainting = {
   }),
 };
 
+// Lấy ra danh sách + search
+const getQuery = {
+    query: Joi.object().keys({
+        page: Joi.number().integer().min(1).default(1),
+        limit: Joi.number().integer().min(1).max(100).default(10),
+        searchTerm: Joi.string().optional()
+    })
+}
+
+// Lấy chi tiết 1 bản ghi
+const getId = {
+    params: Joi.object().keys({
+        id: Joi.number().integer().required()
+    })
+}
+
 module.exports = {
-    createPainting
+    createPainting,
+    getQuery,
+    getId
 }
