@@ -48,11 +48,55 @@ const queryListPaintings = async(queryOptions) => {
             ]
         };
 
-        const { count, rows: paintings } = await Painting.findAndCountAll({
-            
+        const { count, rows: paintingsDB } = await Painting.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
+            include: [
+                {
+                    model: ImagePainting,
+                    as: 'paintingImage',
+                    include: [
+                        {
+                            model: Image,
+                            as: 'images'
+                        }
+                    ]
+                }
+            ]
+        });
+        const paintings = paintingsDB.map((painting) => {
+            const newPainting = painting.toJSON();
+            const newImage = (newPainting.paintingImage ?? [])
+                    .filter((el) => el.painting_id === newPainting.id)
+                    .map(image => image.images)
+            return {
+                id: newPainting.id,
+                name: newPainting.name,
+                author: newPainting.author,
+                imageUrl: newPainting.image_url,
+                period: newPainting.period,
+                description: newPainting.description,
+                createdAt: newPainting.createdAt,
+                updatedAt: newPainting.updatedAt,
+                images: newImage.map((img) => ({
+                    id: img.id,
+                    name: img.name,
+                    url: img.url
+                }))
+            }
         })
-    } catch (error) {
+
+        const totalPages = Math.ceil(count/limit);
+        return {
+            data: paintings,
+            totalPages,
+            currentPage: page,
+            totalPaintings: count
+        }
         
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Đã có lỗi khi lấy ra danh sách tác phẩm: ' + error.message);
     }
 }
 

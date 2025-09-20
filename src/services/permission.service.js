@@ -35,7 +35,7 @@ const getActions = async (queryOptions) => {
         })
         const totalPages = Math.ceil(count/limit);
         return {
-            actions,
+            data: actions,
             totalPages,
             currentPage: page,
             total: count
@@ -148,7 +148,7 @@ const getMenus = async (queryOptions) => {
         })
         const totalPages = Math.ceil(count/limit);
         return {
-            menus: formattedMenus,
+            data: formattedMenus,
             totalPages,
             currentPage: page,
             total: count
@@ -363,7 +363,7 @@ const getPermissions = async (queryOptions) => {
 
         const totalPages = Math.ceil(count/limit);
         return {
-            permissions,
+            data: permissions,
             totalPages,
             currentPage: page,
             total: count
@@ -614,7 +614,7 @@ const queryRoleGroups = async(queryOptions) => {
 
         const totalPages = Math.ceil(count/limit);
         return {
-            roleGroups: formattedRoleGroups,
+            data: formattedRoleGroups,
             totalPages,
             currentPage: page,
             total: count

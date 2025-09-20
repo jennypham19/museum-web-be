@@ -3,7 +3,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class Painting extends Model{
         static associate(models) {
-            Painting.hasOne(models.ImagePainting, {
+            Painting.hasMany(models.ImagePainting, {
                 foreignKey: 'painting_id',
                 as: 'paintingImage'
             }),
