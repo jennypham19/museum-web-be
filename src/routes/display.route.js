@@ -18,4 +18,5 @@ router
 router
     .route('/get-list-paintings')
     .get(validate(displayValidation.getQuery), displayController.getListPaintings)
+
 module.exports = router;

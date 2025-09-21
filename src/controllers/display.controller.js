@@ -16,7 +16,8 @@ const getListPaintings = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công.', data: paintings})
 })
 
+
 module.exports = {
     createPainting,
-    getListPaintings
+    getListPaintings,
 }

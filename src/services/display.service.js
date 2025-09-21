@@ -100,7 +100,8 @@ const queryListPaintings = async(queryOptions) => {
     }
 }
 
+
 module.exports = {
     createPainting,
-    queryListPaintings
+    queryListPaintings,
 }

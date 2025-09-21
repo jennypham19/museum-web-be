@@ -75,9 +75,16 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
+const getCurrentMe = catchAsync(async (req, res) => {
+  // req.user đã có từ middleware protect
+  const user = await authService.getCurrentMe(req.user.id);
+  res.status(StatusCodes.OK).send({ success: true, data: user })
+})
+
 module.exports = {
     login,
     register,
     logout,
-    refreshToken
+    refreshToken,
+    getCurrentMe
 }
