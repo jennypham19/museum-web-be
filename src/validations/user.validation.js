@@ -10,6 +10,10 @@ const createUser = {
       'string.empty': 'Họ tên không được để trống.',
       'any.required': 'Họ tên là trường bắt buộc.',
     }),
+    role: Joi.string().required().messages({
+      'string.empty': 'Vai trò không được để trống.',
+      'any.required': 'Vai trò là trường bắt buộc.',
+    }),
     avatar_url: Joi.string().optional(),
     password: Joi.string().required().messages({
         'string.empty': 'Mật khẩu không được để trống.',

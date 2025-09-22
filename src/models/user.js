@@ -10,6 +10,10 @@ module.exports = (sequelize, DataTypes) => {
             User.hasMany(models.Post, {
                 foreignKey: 'author_id',
                 as: 'userPost'
+            }),
+            User.hasMany(models.UserRole, {
+                foreignKey: 'user_id',
+                as:'users'
             })
         }
     }
