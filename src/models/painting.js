@@ -46,9 +46,9 @@ module.exports = (sequelize, DataTypes) => {
         },
         // Cột status: trạng thái của tác phẩm, kiểu enum, không được null
         status: {
-            type: DataTypes.ENUM('pending', 'reviewing', 'approved', 'rejected'),
+            type: DataTypes.ENUM('created','pending', 'reviewing', 'approved', 'rejected'),
             allowNull: false,
-            defaultValue: 'pending'
+            defaultValue: 'created'
         },
         // Cột rejectionReason: lý do từ chối không duyệt, kiểu text, có thể null
         rejection_reason: {

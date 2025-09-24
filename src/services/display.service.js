@@ -36,10 +36,18 @@ const createPainting = async (paintingBody) => {
 
 // Lấy ra danh sách + search tác phẩm
 const queryListPaintings = async(queryOptions) => {
-    const { page, limit, searchTerm } = queryOptions;
     try {
+        const { page, limit, status, searchTerm } = queryOptions;
         const offset = (page - 1) * limit;
+
         const whereClause = {};
+        if(status) {
+            if (Array.isArray(status)) {
+                whereClause.status = { [Op.in]: status }
+            } else {
+                whereClause.status = { [Op.in]: [status] }
+            }
+        }
         if(searchTerm) {
             whereClause[Op.or] = [
                 { name: { [Op.iLike]: `%${searchTerm}%` }},
@@ -50,8 +58,6 @@ const queryListPaintings = async(queryOptions) => {
 
         const { count, rows: paintingsDB } = await Painting.findAndCountAll({
             where: whereClause,
-            limit,
-            offset,
             include: [
                 {
                     model: ImagePainting,
@@ -63,7 +69,11 @@ const queryListPaintings = async(queryOptions) => {
                         }
                     ]
                 }
-            ]
+            ],
+            limit,
+            offset,
+            order: [[ 'createdAt', 'DESC']],
+            distinct: true // chỉ tính count trong Paintings
         });
         const paintings = paintingsDB.map((painting) => {
             const newPainting = painting.toJSON();
@@ -77,6 +87,7 @@ const queryListPaintings = async(queryOptions) => {
                 imageUrl: newPainting.image_url,
                 period: newPainting.period,
                 description: newPainting.description,
+                status: newPainting.status,
                 createdAt: newPainting.createdAt,
                 updatedAt: newPainting.updatedAt,
                 images: newImage.map((img) => ({
@@ -92,7 +103,7 @@ const queryListPaintings = async(queryOptions) => {
             data: paintings,
             totalPages,
             currentPage: page,
-            totalPaintings: count
+            total: count
         }
         
     } catch (error) {
@@ -100,8 +111,25 @@ const queryListPaintings = async(queryOptions) => {
     }
 }
 
+// Lấy chi tiết 1 bản ghi
+const getPaintingById = async (id) => {
+    const painting = await Painting.findByPk(id);
+    if(!painting) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tác phẩm.')
+    }
+    return painting;
+}
 
+// Gửi phê duyệt
+const sendApproval = async(id, paintingBody) => {
+    const painting = await getPaintingById(id);
+    Object.assign(painting, paintingBody);
+    await painting.save();
+    return painting
+}
 module.exports = {
     createPainting,
     queryListPaintings,
+    sendApproval,
+    getPaintingById
 }

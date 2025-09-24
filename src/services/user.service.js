@@ -31,12 +31,12 @@ const queryUsers = async (queryOptions) => {
         const whereClause = {};
 
         if(role) {
-        if (Array.isArray(role)) {
-            whereClause.role = { [Op.in]: role }
-        } else {
-            whereClause.role = { [Op.in]: [role] }
+            if (Array.isArray(role)) {
+                whereClause.role = { [Op.in]: role }
+            } else {
+                whereClause.role = { [Op.in]: [role] }
+            }
         }
-}
 
         if(searchTerm){
             whereClause[Op.or] = [

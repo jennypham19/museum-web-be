@@ -19,4 +19,9 @@ router
     .route('/get-list-paintings')
     .get(validate(displayValidation.getQuery), displayController.getListPaintings)
 
+
+// Gửi phê duyệt
+router
+    .route('/send-approval-painting/:id')
+    .patch(validate(displayValidation.sendApproval), displayController.sendApproval)
 module.exports = router;

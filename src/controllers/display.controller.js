@@ -11,13 +11,20 @@ const createPainting = catchAsync(async (req, res) => {
 
 // Lấy ra danh sách + search tác phẩm
 const getListPaintings = catchAsync(async (req, res) => {
-    const queryOptions = pick(req.query, ['page', 'limit', 'searchTerm']);
+    const queryOptions = pick(req.query, ['page', 'limit', 'status', 'searchTerm']);
     const paintings = await displayService.queryListPaintings(queryOptions);
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công.', data: paintings})
+})
+
+// Gửi phê duyệt
+const sendApproval = catchAsync(async (req, res) => {
+    await displayService.sendApproval(req.params.id, req.body);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Gửi phê duyệt thành công.'})
 })
 
 
 module.exports = {
     createPainting,
     getListPaintings,
+    sendApproval
 }
