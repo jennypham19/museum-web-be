@@ -92,6 +92,8 @@ const queryListPaintings = async(queryOptions) => {
                 status: newPainting.status,
                 createdAt: newPainting.createdAt,
                 updatedAt: newPainting.updatedAt,
+                rejectionReason: newPainting.rejection_reason,
+                isPublished: newPainting.is_published,
                 images: newImage.map((img) => ({
                     id: img.id,
                     name: img.name,
@@ -129,9 +131,17 @@ const sendApproval = async(id, paintingBody) => {
     await painting.save();
     return painting
 }
+// Đăng tải
+const publishPainting = async(id, paintingBody) => {
+    const painting = await getPaintingById(id);
+    Object.assign(painting, paintingBody);
+    await painting.save();
+    return painting
+}
 module.exports = {
     createPainting,
     queryListPaintings,
     sendApproval,
-    getPaintingById
+    getPaintingById,
+    publishPainting
 }

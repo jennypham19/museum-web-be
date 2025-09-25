@@ -1,7 +1,7 @@
 const { StatusCodes } = require('http-status-codes');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto')
-const { User } = require('../models');
+const { User, UserRole, RoleGroup } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { Op } = require('sequelize');
 
@@ -52,16 +52,42 @@ const queryUsers = async (queryOptions) => {
 
         const { count, rows: users } = await User.findAndCountAll({
             where: whereClause,
+            include:[
+                {
+                    model: UserRole,
+                    as: 'users',
+                    include: [
+                        { model: RoleGroup, as: 'roleGroup'}
+                    ]
+                }
+            ],
             attributes: { exclude: ['password']},
             order: [
                 ['updatedAt', 'ASC'],
             ],
             limit,
-            offset
+            offset,
+            distinct: true // chỉ tính count trong Users
         });
         const totalPages = Math.ceil(count/limit);
+        const formattedUsers =  users.map((user) => {
+            const newUser = user.toJSON();
+            return {
+                id: newUser.id,
+                email: newUser.email,
+                avatarUrl: newUser.avatar_url,
+                createdAt: newUser.createdAt,
+                fullName: newUser.full_name,
+                isActive: newUser.is_active,
+                isChangeType: newUser.is_change_type,
+                phoneNumber: newUser.phone_number,
+                role: newUser.role,
+                updatedAt: newUser.updatedAt,
+                permission: newUser.users ? newUser.users.roleGroup.name : null
+            }
+        })
         return {
-            users,
+            users: formattedUsers,
             totalPages,
             currentPage: page,
             totalUsers: count

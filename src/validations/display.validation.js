@@ -59,9 +59,20 @@ const sendApproval = {
   })
 }
 
+// Đăng tải
+const publishPainting = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required()
+  }),
+  body: Joi.object().keys({
+    is_published: Joi.boolean().required()
+  })
+}
+
 module.exports = {
     createPainting,
     getQuery,
     getId,
-    sendApproval
+    sendApproval,
+    publishPainting
 }

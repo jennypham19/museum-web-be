@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
                 foreignKey: 'author_id',
                 as: 'userPost'
             }),
-            User.hasMany(models.UserRole, {
+            User.hasOne(models.UserRole, {
                 foreignKey: 'user_id',
                 as:'users'
             })

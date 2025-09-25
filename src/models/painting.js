@@ -54,6 +54,11 @@ module.exports = (sequelize, DataTypes) => {
         rejection_reason: {
             type: DataTypes.TEXT,
             allowNull: true
+        },
+        // Cột is_published: đăng tải, kiểu boolean
+        is_published: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
         }
     }, {
         sequelize,

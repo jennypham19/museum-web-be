@@ -41,8 +41,18 @@ const loginWithEmailAndPassword = async (email, password) => {
         
         if(!roleGroup) throw new ApiError(StatusCodes.FORBIDDEN, `Tài khoản ${user.full_name} chưa được gán quyền. Vui lòng liên hệ quản trị viên để được gán quyền`);
         const roleGroupFormatted = await permissionService.mapPermissionByTree(roleGroup);
+        const newUser = user.toJSON();
         const userFormatted = {
-          ...user.toJSON(),
+          id: newUser.id,
+          avatarUrl: newUser.avatar_url,
+          createdAt: newUser.createdAt,
+          email: newUser.email,
+          fullName: newUser.full_name,
+          isActive: newUser.is_active,
+          isChangeType: newUser.is_change_type,
+          phoneNumber: newUser.phone_number,
+          role: newUser.role,
+          updatedAt: newUser.updatedAt,
           permissions: roleGroupFormatted
         }
         return userFormatted; 

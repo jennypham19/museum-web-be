@@ -6,7 +6,7 @@ const displayController = require('../controllers/display.controller');
 
 const router = express.Router();
 
-router.use(protect, authorize('employee'));
+router.use(protect, authorize('employee', 'admin', 'mod'));
 
 // Thêm mới tác phẩm
 router
@@ -24,4 +24,9 @@ router
 router
     .route('/send-approval-painting/:id')
     .patch(validate(displayValidation.sendApproval), displayController.sendApproval)
+
+// Đăng tải
+router
+    .route('/publish-painting/:id')
+    .patch(validate(displayValidation.publishPainting), displayController.publishPainting)
 module.exports = router;
