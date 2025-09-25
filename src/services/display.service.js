@@ -41,7 +41,9 @@ const queryListPaintings = async(queryOptions) => {
         const offset = (page - 1) * limit;
 
         const whereClause = {};
-        if(status) {
+        if(status === 'all'){
+            whereClause.status = { [Op.in]: ['pending', 'reviewing', 'approved', 'rejected']}
+        }else if(status !== undefined && status !== 'all') {
             if (Array.isArray(status)) {
                 whereClause.status = { [Op.in]: status }
             } else {
