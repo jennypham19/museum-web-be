@@ -28,10 +28,17 @@ const publishPainting = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: painting.is_published ? 'Đăng tải thành công.' : 'Hủy đăng tải thành công'});
 })
 
+// Phê duyệt
+const approvePainting = catchAsync(async (req, res) => {
+    await displayService.approvePainting(req.params.id, req.body);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Duyệt tác phẩm thành công.'})
+})
+
 
 module.exports = {
     createPainting,
     getListPaintings,
     sendApproval,
-    publishPainting
+    publishPainting,
+    approvePainting
 }

@@ -59,6 +59,16 @@ module.exports = (sequelize, DataTypes) => {
         is_published: {
             type: DataTypes.BOOLEAN,
             defaultValue: false
+        },
+        // Cột reason_send: lý do để gửi lên cho admin duyệt, kiểu text, có thể null
+        reason_send: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
+        // Cột note: ghi chú (nếu có) khi gửi lên admin duyệt, kiểu text, có thể null
+        note: {
+            type: DataTypes.TEXT,
+            allowNull: true
         }
     }, {
         sequelize,

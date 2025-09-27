@@ -49,13 +49,14 @@ const getId = {
     })
 }
 
-// Gửi phê duyệt
+// Gửi phê duyệt/ duyệt
 const sendApproval = {
   params: Joi.object().keys({
     id: Joi.number().integer().required()
   }),
   body: Joi.object().keys({
-    status: Joi.string().required()
+    status: Joi.string().required(),
+    userIdAprrove: Joi.number().integer().optional()
   })
 }
 

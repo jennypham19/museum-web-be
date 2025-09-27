@@ -29,4 +29,9 @@ router
 router
     .route('/publish-painting/:id')
     .patch(validate(displayValidation.publishPainting), displayController.publishPainting)
+
+// Duyệt
+router
+    .route('/approve-painting/:id')
+    .put(validate(displayValidation.sendApproval), displayController.approvePainting)
 module.exports = router;

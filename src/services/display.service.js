@@ -138,10 +138,18 @@ const publishPainting = async(id, paintingBody) => {
     await painting.save();
     return painting
 }
+
+// Phê duyệt
+const approvePainting = async(id, paintingBody) => {
+    const { status, userIdApprove } = paintingBody;
+    const painting = await getPaintingById(id);
+    await painting.update({ status, user_id_approve: userIdApprove});
+}
 module.exports = {
     createPainting,
     queryListPaintings,
     sendApproval,
     getPaintingById,
-    publishPainting
+    publishPainting,
+    approvePainting
 }
