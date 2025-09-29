@@ -7,7 +7,7 @@ const checkFileSize = require("../middlewares/checkFileSize");
 
 const router = express.Router();
 
-router.use(protect, authorize('employee', 'admin'));
+router.use(protect, authorize('employee', 'admin', 'mod'));
 
 //upload ảnh
 router.post(

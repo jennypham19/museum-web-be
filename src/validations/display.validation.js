@@ -56,7 +56,7 @@ const sendApproval = {
   }),
   body: Joi.object().keys({
     status: Joi.string().required(),
-    userIdAprrove: Joi.number().integer().optional()
+    userIdApprove: Joi.number().integer().optional()
   })
 }
 
@@ -70,10 +70,23 @@ const publishPainting = {
   })
 }
 
+// Từ chối
+const rejectPainting = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required()
+  }),
+  body: Joi.object().keys({
+    status: Joi.string().required(),
+    userIdApprove: Joi.number().integer().optional(),
+    rejectionReason: Joi.string().required()
+  })
+}
+
 module.exports = {
     createPainting,
     getQuery,
     getId,
     sendApproval,
-    publishPainting
+    publishPainting,
+    rejectPainting
 }

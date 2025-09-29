@@ -14,6 +14,14 @@ module.exports = (sequelize, DataTypes) => {
             Painting.hasMany(models.PaintingExhibition, {
                 foreignKey: 'painting_id',
                 as: 'paintingsExhibition'
+            }),
+            Painting.belongsTo(models.User, {
+                foreignKey: 'user_id_approve',
+                as: 'approvedByUser'
+            }),
+            Painting.belongsTo(models.User, {
+                foreignKey: 'user_id_send',
+                as: 'sentByUser'
             })
         }
     };
@@ -68,6 +76,16 @@ module.exports = (sequelize, DataTypes) => {
         // Cột note: ghi chú (nếu có) khi gửi lên admin duyệt, kiểu text, có thể null
         note: {
             type: DataTypes.TEXT,
+            allowNull: true
+        },
+        // Cột user_id_approve: id người duyệt (kiểm duyệt viên hoặc quản trị viên), kiểu số, có thể null
+        user_id_approve: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+        // Cột user_id_send: id người gửi (kiểm duyệt viên), kiểu số, có thể null
+        user_id_send: {
+            type: DataTypes.INTEGER,
             allowNull: true
         }
     }, {

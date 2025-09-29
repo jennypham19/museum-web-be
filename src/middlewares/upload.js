@@ -11,6 +11,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params:(req, file) => {
     
+    
     // mặc định folder gốc
     let folder = "museum";
     //Nếu gửi lên kèm theo type => tạo folder con theo type
@@ -21,11 +22,16 @@ const storage = new CloudinaryStorage({
       console.warn("⚠️ req.body.type missing, fallback to museum/");
     }
 
+    // Lấy tên gốc không đuôi
+    const baseName = path.parse(file.originalname).name;
+
     return {
       folder,
       resource_type: "auto",                        // fix lỗi resource_type
-      use_filename: true,
-      unique_filename: true,
+      use_filename: true, // giữ tên gốc của file
+      unique_filename: false, // không thêm chuỗi random vào
+      public_id: `${baseName}`, // lồng originalname vào public_id
+      overwrite: false, // nếu trùng báo lỗi
     }
   }
 })

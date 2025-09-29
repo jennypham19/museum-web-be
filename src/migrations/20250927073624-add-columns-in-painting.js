@@ -7,13 +7,19 @@ module.exports = {
     if(!tableDescription.user_id_approve) {
       await queryInterface.addColumn('Paintings', 'user_id_approve', {
         type: Sequelize.INTEGER,
-        allowNull: true
+        allowNull: true,
+        references: { model: 'Users', key: 'id'},
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       })
     };
     if(!tableDescription.user_id_send) {
       await queryInterface.addColumn('Paintings', 'user_id_send', {
         type: Sequelize.INTEGER,
-        allowNull: true
+        allowNull: true,
+        references: { model: 'Users', key: 'id'},
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       })
     }
   },

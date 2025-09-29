@@ -143,7 +143,15 @@ const publishPainting = async(id, paintingBody) => {
 const approvePainting = async(id, paintingBody) => {
     const { status, userIdApprove } = paintingBody;
     const painting = await getPaintingById(id);
-    await painting.update({ status, user_id_approve: userIdApprove});
+    await painting.update({ status, user_id_approve: userIdApprove });
+    
+}
+
+// Từ chối
+const rejectPainting = async(id, paintingBody) => {
+    const { status, userIdApprove, rejectionReason } = paintingBody;
+    const painting = await getPaintingById(id);
+    await painting.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason});
 }
 module.exports = {
     createPainting,
@@ -151,5 +159,6 @@ module.exports = {
     sendApproval,
     getPaintingById,
     publishPainting,
-    approvePainting
+    approvePainting,
+    rejectPainting
 }

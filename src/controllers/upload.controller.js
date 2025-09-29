@@ -14,7 +14,7 @@ const uploadImageSingle = catchAsync(async (req, res) => {
                 console.error("Cloudinary upload failed. Full file object:", req.file);
                 throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Upload lên Cloudinary thất bại.");
             }
-            
+
             const imageUrl = req.file.path; // link ảnh Cloudinary
             const folder = req.body.type || 'museum' // folder đã lưu
             const fileName = req.file.filename; // lấy tên ảnh

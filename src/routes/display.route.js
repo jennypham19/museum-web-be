@@ -34,4 +34,9 @@ router
 router
     .route('/approve-painting/:id')
     .put(validate(displayValidation.sendApproval), displayController.approvePainting)
+
+// Từ chối
+router 
+    .route('/reject-painting/:id')
+    .put(validate(displayValidation.rejectPainting), displayController.rejectPainting)
 module.exports = router;

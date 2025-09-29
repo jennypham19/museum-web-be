@@ -14,6 +14,14 @@ module.exports = (sequelize, DataTypes) => {
             User.hasOne(models.UserRole, {
                 foreignKey: 'user_id',
                 as:'users'
+            }),
+            User.hasMany(models.Painting, {
+                foreignKey: 'user_id_approve',
+                as: 'userApprove'
+            }),
+            User.hasMany(models.Painting, {
+                foreignKey: 'user_id_send',
+                as: 'userSend'
             })
         }
     }
