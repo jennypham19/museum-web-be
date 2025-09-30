@@ -2,15 +2,16 @@ const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
 const { sequelize, Painting, Image, ImagePainting } = require("../models");
 const { Op } = require("sequelize");
+const cloudinary = require("../config/cloudinary");
 
 // Thêm mới tác phẩm
 const createPainting = async (paintingBody) => {
     const transaction = await sequelize.transaction();
-    const { name, author, imageUrl, period, description, images} = paintingBody;
+    const { name, author, imageUrl, period, description, images, nameImage} = paintingBody;
     try {
         // 1. Tạo painting
         const painting = await Painting.create(
-            { name, author, period, image_url: imageUrl, description },
+            { name, author, period, image_url: imageUrl, name_image: nameImage, description },
             { transaction }
         )
         // 2. Insert ảnh vào Images
@@ -153,6 +154,59 @@ const rejectPainting = async(id, paintingBody) => {
     const painting = await getPaintingById(id);
     await painting.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason});
 }
+
+// Xóa tác phẩm + ảnh kèm theo
+const deletePainting = async(id) => {
+    const transaction = await sequelize.transaction();
+    try {
+        // 1. Lấy ảnh trên Paintings và Images
+        const painting = await getPaintingById(id);
+
+        // Tìm tất cả các ảnh trong bảng ImagesPainting
+        const imagesPainting = await ImagePainting.findAll({ where: { painting_id: id }, transaction});
+
+        // Lấy ids ảnh trong bảng ImagesPainting
+        const imageIds = imagesPainting.map((imgs) => imgs.image_id);
+
+        // Lấy ảnh trong bảng Images
+        const images = await Image.findAll({ where: { id: imageIds }, transaction})
+
+        // Lấy publicIds trong bảng Images
+        const publicIds = images.map((imgs) => imgs.name);
+
+        if(!painting.name_image && publicIds.length === 0){
+            throw new ApiError(StatusCodes.NOT_FOUND, "Không có public_id hợp lệ để xóa")
+        }
+        // 2. Xoá trên Cloudinary (batch)
+        if(painting.name_image){
+            const result = await cloudinary.uploader.destroy(painting.name_image);
+            if(result.result !== 'ok' && result.result !== "not found") {
+                throw new ApiError(StatusCodes.BAD_REQUEST, `Xóa ảnh chính thất bại ${painting.name_image}`);
+            }
+        }
+        if(publicIds.length > 0) {
+            const cloudResult = await cloudinary.api.delete_resources(publicIds);
+            // Kiểm tra nếu Cloudinary fail bất kỳ ảnh nào 
+            const failed = Object.entries(cloudResult.deleted).filter( ([, status]) => status !== "deleted" ); 
+            if (failed.length > 0) { 
+                throw new Error(`Xoá Cloudinary fail với: ${failed.map(([id]) => id).join(", ")}`); 
+            }
+        }
+        
+        // 3. Xóa trong DB (Images + ImagesPainting + Paintings)
+        await ImagePainting.destroy({ where: { painting_id: id }, transaction});
+        await Image.destroy({ where: { id: imageIds }, transaction });
+        await Painting.destroy({ where: { id }, transaction});
+
+        // 4. Commit transaction
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+    }
+}
+
 module.exports = {
     createPainting,
     queryListPaintings,
@@ -160,5 +214,6 @@ module.exports = {
     getPaintingById,
     publishPainting,
     approvePainting,
-    rejectPainting
+    rejectPainting,
+    deletePainting
 }

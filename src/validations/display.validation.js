@@ -24,6 +24,7 @@ const createPainting = {
       'string.empty': 'Mô tả không được để trống.',
       'any.required': 'Mô tả là trường bắt buộc.',
     }),
+    nameImage: Joi.string().optional(),
     images: Joi.array().items(
         Joi.object({
             name: Joi.string().optional(),

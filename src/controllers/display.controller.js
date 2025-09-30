@@ -40,11 +40,18 @@ const rejectPainting = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Từ chối phê duyệt tác phẩm thành công.'})
 })
 
+// Xóa tác phẩm
+const deletePainting = catchAsync(async (req, res) => {
+    const painting = await displayService.deletePainting(req.params.id);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Xóa tác phẩm thành công.', data: painting})
+})
+
 module.exports = {
     createPainting,
     getListPaintings,
     sendApproval,
     publishPainting,
     approvePainting,
-    rejectPainting
+    rejectPainting,
+    deletePainting
 }

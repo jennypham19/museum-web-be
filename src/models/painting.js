@@ -87,6 +87,11 @@ module.exports = (sequelize, DataTypes) => {
         user_id_send: {
             type: DataTypes.INTEGER,
             allowNull: true
+        },
+        // Cột name_image: tên ảnh lưu trong Cloudinary, kiểu text, có thể null
+        name_image: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, {
         sequelize,

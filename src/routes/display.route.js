@@ -39,4 +39,9 @@ router
 router 
     .route('/reject-painting/:id')
     .put(validate(displayValidation.rejectPainting), displayController.rejectPainting)
+
+// Xóa tác phẩm
+router
+    .route('/delete-painting/:id')
+    .delete(validate(displayValidation.getId), displayController.deletePainting)
 module.exports = router;
