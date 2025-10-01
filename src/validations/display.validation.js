@@ -34,12 +34,36 @@ const createPainting = {
   }),
 };
 
+// Thêm mới bộ sưu tập
+const createCollection = {
+  body: Joi.object().keys({
+    name: Joi.string().required().messages({
+      'string.empty': 'Tên không được để trống.',
+      'any.required': 'Tên là trường bắt buộc.',
+    }),
+    tags: Joi.string().required().messages({
+      'string.empty': 'Chủ đề không được để trống.',
+      'any.required': 'Chủ đề là trường bắt buộc.',
+    }),
+    imageUrl: Joi.string().required().messages({
+        'string.empty': 'Đường dẫn ảnh không được để trống.',
+        'any.required': 'Đường dẫn ảnh là bắt buộc.',
+    }),
+    description: Joi.string().required().messages({
+      'string.empty': 'Mô tả không được để trống.',
+      'any.required': 'Mô tả là trường bắt buộc.',
+    }),
+    nameImage: Joi.string().optional(),
+  }),
+};
+
 // Lấy ra danh sách + search
 const getQuery = {
     query: Joi.object().keys({
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().min(1).max(100).default(10),
-        searchTerm: Joi.string().optional()
+        searchTerm: Joi.string().optional(),
+        tags: Joi.string().optional()
     })
 }
 
@@ -89,5 +113,6 @@ module.exports = {
     getId,
     sendApproval,
     publishPainting,
-    rejectPainting
+    rejectPainting,
+    createCollection
 }

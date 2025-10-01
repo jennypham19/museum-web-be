@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
-const { sequelize, Painting, Image, ImagePainting } = require("../models");
+const { sequelize, Painting, Image, ImagePainting, Collection } = require("../models");
 const { Op } = require("sequelize");
 const cloudinary = require("../config/cloudinary");
 
@@ -30,6 +30,20 @@ const createPainting = async (paintingBody) => {
         if (!transaction.finished) {   // ✅ chỉ rollback nếu chưa commit/rollback
             await transaction.rollback();
         }
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
+    }
+}
+
+// Thêm mới bộ sưu tập
+const createCollection = async (collectionBody) => {
+    const { name, tags, imageUrl, description, nameImage} = collectionBody;
+    try {
+        // 1. Tạo collection
+        await Collection.create(
+            { name, tags, image_url: imageUrl, name_image: nameImage, description },
+        )
+    } catch (error) {
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
     }
@@ -113,6 +127,67 @@ const queryListPaintings = async(queryOptions) => {
         
     } catch (error) {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Đã có lỗi khi lấy ra danh sách tác phẩm: ' + error.message);
+    }
+}
+
+// Lấy ra danh sách + search bộ sưu tập
+const queryListCollections = async(queryOptions) => {
+    try {
+        const { page, limit, status, searchTerm, tags } = queryOptions;
+        const offset = (page - 1) * limit;
+
+        const whereClause = {};
+        if(status === 'all'){
+            whereClause.status = { [Op.in]: ['pending', 'reviewing', 'approved', 'rejected']}
+        }else if(status !== undefined && status !== 'all') {
+            if (Array.isArray(status)) {
+                whereClause.status = { [Op.in]: status }
+            } else {
+                whereClause.status = { [Op.in]: [status] }
+            }
+        }
+
+        if(tags !== undefined && tags !== 'all') {
+            whereClause.tags = tags
+        }
+        if(searchTerm) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${searchTerm}%` }},
+            ]
+        };
+
+        const { count, rows: collectionsDB } = await Collection.findAndCountAll({
+            where: whereClause,
+            limit,
+            offset,
+            order: [[ 'createdAt', 'DESC']],
+        });
+
+        const collections = collectionsDB.map((collection) => {
+            const newCollection = collection.toJSON();
+            return {
+                id: newCollection.id,
+                name: newCollection.name,
+                imageUrl: newCollection.image_url,
+                description: newCollection.description,
+                status: newCollection.status,
+                createdAt: newCollection.createdAt,
+                updatedAt: newCollection.updatedAt,
+                rejectionReason: newCollection.rejection_reason,
+                isPublished: newCollection.is_published,
+            }
+        })
+
+        const totalPages = Math.ceil(count/limit);
+        return {
+            data: collections,
+            totalPages,
+            currentPage: page,
+            total: count
+        }
+
+    } catch (error) {
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi khi lấy ra danh sách bộ sưu tập: " + error.message)
     }
 }
 
@@ -215,5 +290,7 @@ module.exports = {
     publishPainting,
     approvePainting,
     rejectPainting,
-    deletePainting
+    deletePainting,
+    createCollection,
+    queryListCollections
 }

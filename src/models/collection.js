@@ -10,6 +10,14 @@ module.exports = (sequelize, DataTypes) => {
             Collection.hasMany(models.CollectionExhibition, {
                 foreignKey: 'collection_id',
                 as: 'collectionsExhibition'
+            }),
+            Collection.belongsTo(models.User, {
+                foreignKey: 'user_id_approve',
+                as: 'approvedCollectionByUser'
+            }),
+            Collection.belongsTo(models.User, {
+                foreignKey: 'user_id_send',
+                as: 'sentCollectionByUser'
             })
         }
     };

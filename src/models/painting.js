@@ -17,11 +17,11 @@ module.exports = (sequelize, DataTypes) => {
             }),
             Painting.belongsTo(models.User, {
                 foreignKey: 'user_id_approve',
-                as: 'approvedByUser'
+                as: 'approvedPaintingByUser'
             }),
             Painting.belongsTo(models.User, {
                 foreignKey: 'user_id_send',
-                as: 'sentByUser'
+                as: 'sentPaintingByUser'
             })
         }
     };

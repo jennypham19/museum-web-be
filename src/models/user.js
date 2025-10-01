@@ -17,11 +17,19 @@ module.exports = (sequelize, DataTypes) => {
             }),
             User.hasMany(models.Painting, {
                 foreignKey: 'user_id_approve',
-                as: 'userApprove'
+                as: 'userApprovePainting'
             }),
             User.hasMany(models.Painting, {
                 foreignKey: 'user_id_send',
-                as: 'userSend'
+                as: 'userSendPanting'
+            }),
+            User.hasMany(models.Collection, {
+                foreignKey: 'user_id_approve',
+                as: 'userApproveCollection'
+            }),
+            User.hasMany(models.Collection, {
+                foreignKey: 'user_id_send',
+                as: 'userSendCollection'
             })
         }
     }

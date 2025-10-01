@@ -9,11 +9,24 @@ const createPainting = catchAsync(async (req, res) => {
     res.status(StatusCodes.CREATED).send({ success: true, message: 'Thêm mới bản ghi thành công.'});
 })
 
+// Thêm mới bộ sưu tập
+const createCollection = catchAsync(async (req, res) => {
+    await displayService.createCollection(req.body);
+    res.status(StatusCodes.CREATED).send({ success: true, message: 'Thêm mới bản ghi thành công.'});
+})
+
 // Lấy ra danh sách + search tác phẩm
 const getListPaintings = catchAsync(async (req, res) => {
     const queryOptions = pick(req.query, ['page', 'limit', 'status', 'searchTerm']);
     const paintings = await displayService.queryListPaintings(queryOptions);
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công.', data: paintings})
+})
+
+// Lấy ra danh sách + search bộ sưu tập
+const getListCollections = catchAsync(async (req, res) => {
+    const queryOptions = pick(req.query, ['page', 'limit', 'status','tags', 'searchTerm']);
+    const collections = await displayService.queryListCollections(queryOptions);
+    res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công.', data: collections})
 })
 
 // Gửi phê duyệt
@@ -53,5 +66,7 @@ module.exports = {
     publishPainting,
     approvePainting,
     rejectPainting,
-    deletePainting
+    deletePainting,
+    createCollection,
+    getListCollections
 }

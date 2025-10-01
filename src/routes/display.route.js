@@ -13,12 +13,20 @@ router
     .route('/create-painting')
     .post(validate(displayValidation.createPainting), displayController.createPainting)
 
+// Thêm mới bộ sưu tập
+router
+    .route('/create-collection')
+    .post(validate(displayValidation.createCollection), displayController.createCollection)
 
 // Lấy ra danh sách + search tác phẩm
 router
     .route('/get-list-paintings')
     .get(validate(displayValidation.getQuery), displayController.getListPaintings)
 
+// Lấy ra danh sách + search bộ sưu tập
+router
+    .route('/get-list-collections')
+    .get(validate(displayValidation.getQuery), displayController.getListCollections)
 
 // Gửi phê duyệt
 router
