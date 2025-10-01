@@ -189,7 +189,7 @@ const deletePainting = async(id) => {
             // Kiểm tra nếu Cloudinary fail bất kỳ ảnh nào 
             const failed = Object.entries(cloudResult.deleted).filter( ([, status]) => status !== "deleted" ); 
             if (failed.length > 0) { 
-                throw new Error(`Xoá Cloudinary fail với: ${failed.map(([id]) => id).join(", ")}`); 
+                throw new ApiError(StatusCodes.BAD_REQUEST,`Xoá Cloudinary fail với: ${failed.map(([id]) => id).join(", ")}`); 
             }
         }
         

@@ -5,6 +5,8 @@ const path = require('path');
 const ApiError = require('../utils/ApiError');
 const { StatusCodes } = require('http-status-codes');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { v4: uuidv4 } = require("uuid");
+const crypto = require('crypto');
 
 // Lưu trực tiếp vào Cloudinary với folder động
 const storage = new CloudinaryStorage({
@@ -23,14 +25,18 @@ const storage = new CloudinaryStorage({
     }
 
     // Lấy tên gốc không đuôi
-    const baseName = path.parse(file.originalname).name;
+    let baseName = path.parse(file.originalname).name;
+
+    // sanitize tên: chỉ cho phép chữ, số, dấu gạch ngang và gạch dưới
+    baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileHash = crypto.createHash("md5").update(baseName).digest("hex");
 
     return {
       folder,
       resource_type: "auto",                        // fix lỗi resource_type
       use_filename: true, // giữ tên gốc của file
       unique_filename: false, // không thêm chuỗi random vào
-      public_id: `${baseName}`, // lồng originalname vào public_id
+      public_id: `${baseName}_${fileHash}`, // lồng originalname vào public_id
       overwrite: false, // nếu trùng báo lỗi
     }
   }
