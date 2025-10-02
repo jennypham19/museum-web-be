@@ -54,6 +54,7 @@ const createCollection = {
       'any.required': 'Mô tả là trường bắt buộc.',
     }),
     nameImage: Joi.string().optional(),
+    curatorId: Joi.number().integer().required()
   }),
 };
 
@@ -63,7 +64,7 @@ const getQuery = {
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().min(1).max(100).default(10),
         searchTerm: Joi.string().optional(),
-        tags: Joi.string().optional()
+        curatorId: Joi.number().integer().optional()
     })
 }
 

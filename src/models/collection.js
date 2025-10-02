@@ -3,7 +3,7 @@ const { Model} = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class Collection extends Model {
         static associate(models) {
-            Collection.hasOne(models.PaintingCollection, {
+            Collection.hasMany(models.PaintingCollection, {
                 foreignKey: 'collection_id',
                 as: 'collectionPaintings'
             }),
@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
             Collection.belongsTo(models.User, {
                 foreignKey: 'user_id_send',
                 as: 'sentCollectionByUser'
+            }),
+            Collection.belongsTo(models.User, {
+                foreignKey: 'curator_id',
+                as: 'collectionCurator'
             })
         }
     };
@@ -84,7 +88,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: true
         },
-
+        // Cột curator_id: id người phụ trách (người thêm mới tác phẩm), kiểu số, có thể null
+        curator_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        }
     }, {
         sequelize,
         modelName: 'Collection'

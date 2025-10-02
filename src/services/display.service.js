@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
-const { sequelize, Painting, Image, ImagePainting, Collection } = require("../models");
+const { sequelize, Painting, Image, ImagePainting, Collection, PaintingCollection } = require("../models");
 const { Op } = require("sequelize");
 const cloudinary = require("../config/cloudinary");
 
@@ -37,16 +37,44 @@ const createPainting = async (paintingBody) => {
 
 // Thêm mới bộ sưu tập
 const createCollection = async (collectionBody) => {
-    const { name, tags, imageUrl, description, nameImage} = collectionBody;
+    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
     try {
         // 1. Tạo collection
         await Collection.create(
-            { name, tags, image_url: imageUrl, name_image: nameImage, description },
+            { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId },
         )
     } catch (error) {
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
     }
+}
+
+const getPainting = (paintingsBody) => {
+    const paintings = paintingsBody.map((painting) => {
+        const newPainting = painting.toJSON();
+        const newImage = (newPainting.paintingImage ?? [])
+            .filter((el) => el.painting_id === newPainting.id)
+            .map(image => image.images)
+        return {
+            id: newPainting.id,
+            name: newPainting.name,
+            author: newPainting.author,
+            imageUrl: newPainting.image_url,
+            period: newPainting.period,
+            description: newPainting.description,
+            status: newPainting.status,
+            createdAt: newPainting.createdAt,
+             updatedAt: newPainting.updatedAt,
+            rejectionReason: newPainting.rejection_reason,
+            isPublished: newPainting.is_published,
+            images: newImage.map((img) => ({
+                id: img.id,
+                name: img.name,
+                url: img.url
+            }))
+        }
+    })
+    return paintings;
 }
 
 // Lấy ra danh sách + search tác phẩm
@@ -92,31 +120,7 @@ const queryListPaintings = async(queryOptions) => {
             order: [[ 'createdAt', 'DESC']],
             distinct: true // chỉ tính count trong Paintings
         });
-        const paintings = paintingsDB.map((painting) => {
-            const newPainting = painting.toJSON();
-            const newImage = (newPainting.paintingImage ?? [])
-                    .filter((el) => el.painting_id === newPainting.id)
-                    .map(image => image.images)
-            return {
-                id: newPainting.id,
-                name: newPainting.name,
-                author: newPainting.author,
-                imageUrl: newPainting.image_url,
-                period: newPainting.period,
-                description: newPainting.description,
-                status: newPainting.status,
-                createdAt: newPainting.createdAt,
-                updatedAt: newPainting.updatedAt,
-                rejectionReason: newPainting.rejection_reason,
-                isPublished: newPainting.is_published,
-                images: newImage.map((img) => ({
-                    id: img.id,
-                    name: img.name,
-                    url: img.url
-                }))
-            }
-        })
-
+        const paintings = getPainting(paintingsDB);
         const totalPages = Math.ceil(count/limit);
         return {
             data: paintings,
@@ -133,10 +137,10 @@ const queryListPaintings = async(queryOptions) => {
 // Lấy ra danh sách + search bộ sưu tập
 const queryListCollections = async(queryOptions) => {
     try {
-        const { page, limit, status, searchTerm, tags } = queryOptions;
+        const { page, limit, status, curatorId, searchTerm } = queryOptions;
         const offset = (page - 1) * limit;
 
-        const whereClause = {};
+        const whereClause = { curator_id: curatorId };
         if(status === 'all'){
             whereClause.status = { [Op.in]: ['pending', 'reviewing', 'approved', 'rejected']}
         }else if(status !== undefined && status !== 'all') {
@@ -147,9 +151,6 @@ const queryListCollections = async(queryOptions) => {
             }
         }
 
-        if(tags !== undefined && tags !== 'all') {
-            whereClause.tags = tags
-        }
         if(searchTerm) {
             whereClause[Op.or] = [
                 { name: { [Op.iLike]: `%${searchTerm}%` }},
@@ -158,13 +159,42 @@ const queryListCollections = async(queryOptions) => {
 
         const { count, rows: collectionsDB } = await Collection.findAndCountAll({
             where: whereClause,
+            include: [
+                {
+                    model: PaintingCollection,
+                    as: 'collectionPaintings',
+                    include: [
+                        {
+                            model: Painting,
+                            as: 'painting',
+                            include: [
+                                {
+                                    model: ImagePainting,
+                                    as: 'paintingImage',
+                                    include: [
+                                        {
+                                            model: Image,
+                                            as: 'images'
+                                        }
+                                    ]
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
             limit,
             offset,
             order: [[ 'createdAt', 'DESC']],
+            distinct: true // chỉ tính count trong Collections
+
         });
 
         const collections = collectionsDB.map((collection) => {
             const newCollection = collection.toJSON();
+            const paintings  = (collection.collectionPaintings ?? [])
+                .filter((el) => el.collection_id === newCollection.id)
+                .map((el) => el.painting);
             return {
                 id: newCollection.id,
                 name: newCollection.name,
@@ -175,6 +205,10 @@ const queryListCollections = async(queryOptions) => {
                 updatedAt: newCollection.updatedAt,
                 rejectionReason: newCollection.rejection_reason,
                 isPublished: newCollection.is_published,
+                tags: newCollection.tags,
+                curatorId: newCollection.curator_id,
+                // paintings,
+                arts: getPainting(paintings)
             }
         })
 

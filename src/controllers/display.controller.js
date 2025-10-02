@@ -24,7 +24,7 @@ const getListPaintings = catchAsync(async (req, res) => {
 
 // Lấy ra danh sách + search bộ sưu tập
 const getListCollections = catchAsync(async (req, res) => {
-    const queryOptions = pick(req.query, ['page', 'limit', 'status','tags', 'searchTerm']);
+    const queryOptions = pick(req.query, ['page', 'limit', 'status', 'curatorId', 'searchTerm']);
     const collections = await displayService.queryListCollections(queryOptions);
     res.status(StatusCodes.OK).send({ success: true, message: 'Lấy danh sách thành công.', data: collections})
 })

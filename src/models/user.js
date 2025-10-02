@@ -30,6 +30,10 @@ module.exports = (sequelize, DataTypes) => {
             User.hasMany(models.Collection, {
                 foreignKey: 'user_id_send',
                 as: 'userSendCollection'
+            }),
+            User.hasMany(models.Collection, {
+                foreignKey: 'curator_id',
+                as: 'curatorCollection'
             })
         }
     }
