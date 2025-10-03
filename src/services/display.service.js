@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
-const { sequelize, Painting, Image, ImagePainting, Collection, PaintingCollection } = require("../models");
+const { sequelize, Painting, Image, ImagePainting, Collection, PaintingCollection, User } = require("../models");
 const { Op } = require("sequelize");
 const cloudinary = require("../config/cloudinary");
 
@@ -181,6 +181,13 @@ const queryListCollections = async(queryOptions) => {
                             ],
                         }
                     ]
+                },
+                { 
+                    model: User,
+                    as: 'collectionCurator',
+                    where: {
+                        id: curatorId
+                    }
                 }
             ],
             limit,
@@ -195,6 +202,19 @@ const queryListCollections = async(queryOptions) => {
             const paintings  = (collection.collectionPaintings ?? [])
                 .filter((el) => el.collection_id === newCollection.id)
                 .map((el) => el.painting);
+            const newCurator = newCollection.collectionCurator
+            const curator = {
+                id: newCurator.id,
+                email: newCurator.email,
+                fullName: newCurator.full_name,
+                role: newCurator.role,
+                phoneNumber: newCurator.phone_number,
+                avatarUrl: newCurator.avatar_url,
+                isActive: newCurator.is_active,
+                isChangeType: newCurator.is_change_type,
+                createdAt: newCurator.createdAt,
+                updatedAt: newCurator.updatedAt
+            }
             return {
                 id: newCollection.id,
                 name: newCollection.name,
@@ -208,7 +228,9 @@ const queryListCollections = async(queryOptions) => {
                 tags: newCollection.tags,
                 curatorId: newCollection.curator_id,
                 // paintings,
-                arts: getPainting(paintings)
+                arts: getPainting(paintings),
+                curator
+                
             }
         })
 
