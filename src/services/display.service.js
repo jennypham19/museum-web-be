@@ -219,6 +219,7 @@ const queryListCollections = async(queryOptions) => {
                 id: newCollection.id,
                 name: newCollection.name,
                 imageUrl: newCollection.image_url,
+                nameImage: newCollection.name_image,
                 description: newCollection.description,
                 status: newCollection.status,
                 createdAt: newCollection.createdAt,
