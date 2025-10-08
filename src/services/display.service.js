@@ -1,7 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const ApiError = require("../utils/ApiError");
 const { sequelize, Painting, Image, ImagePainting, Collection, PaintingCollection, User } = require("../models");
-const { Op } = require("sequelize");
+const { Op, col } = require("sequelize");
 const cloudinary = require("../config/cloudinary");
 
 // Thêm mới tác phẩm
@@ -49,6 +49,39 @@ const createCollection = async (collectionBody) => {
     }
 }
 
+// Chỉnh sửa bộ sưu tập
+const updateCollection = async (id, collectionBody) => {
+    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
+    try {
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND,  "Không tồn tại tác phẩm.")
+        }
+        
+        // Chỉ cho phép sửa bộ sưu tập đang ở trạng thái 'created' hoặc 'pending' hoặc 'rejected'
+        if(collection.status === 'approved' || collection.status === 'reviewing') {
+            throw new ApiError(StatusCodes.BAD_REQUEST, "Không thể sửa bộ sưu tập đang chờ phê duyệt hoặc đã được duyệt")
+        }
+
+        if(collection.status === 'created') {
+            await collection.update(
+                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'created' }
+            )    
+        }
+        if(collection.status === 'pending' || collection.status === 'rejected') {
+            await collection.update(
+                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'pending' }
+            ) 
+        }
+
+        return collection;
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi chỉnh sửa: " + error.message);
+    }
+}
+
+// Lấy tác phẩm
 const getPainting = (paintingsBody) => {
     const paintings = paintingsBody.map((painting) => {
         const newPainting = painting.toJSON();
@@ -140,7 +173,10 @@ const queryListCollections = async(queryOptions) => {
         const { page, limit, status, curatorId, searchTerm } = queryOptions;
         const offset = (page - 1) * limit;
 
-        const whereClause = { curator_id: curatorId };
+        const whereClause = {};
+        if(curatorId){
+            whereClause.curator_id = curatorId
+        }
         if(status === 'all'){
             whereClause.status = { [Op.in]: ['pending', 'reviewing', 'approved', 'rejected']}
         }else if(status !== undefined && status !== 'all') {
@@ -185,9 +221,7 @@ const queryListCollections = async(queryOptions) => {
                 { 
                     model: User,
                     as: 'collectionCurator',
-                    where: {
-                        id: curatorId
-                    }
+                    ...(curatorId ? { where: { id: curatorId } } : {})
                 }
             ],
             limit,
@@ -257,12 +291,26 @@ const getPaintingById = async (id) => {
     return painting;
 }
 
-// Gửi phê duyệt
+// Gửi phê duyệt tác phẩm
 const sendApproval = async(id, paintingBody) => {
     const painting = await getPaintingById(id);
     Object.assign(painting, paintingBody);
     await painting.save();
     return painting
+}
+
+// Gửi phê duyệt bộ sưu tập
+const sendCollectionApproval = async(id, collectionBody) => {
+    try {
+        const collection = await Collection.findByPk(id);
+        if(!collection) {
+            throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bộ sưu tập.");
+        }
+        await collection.update({ status: collectionBody.status });
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+    }
 }
 // Đăng tải
 const publishPainting = async(id, paintingBody) => {
@@ -272,7 +320,7 @@ const publishPainting = async(id, paintingBody) => {
     return painting
 }
 
-// Phê duyệt
+// Phê duyệt tác phẩm
 const approvePainting = async(id, paintingBody) => {
     const { status, userIdApprove } = paintingBody;
     const painting = await getPaintingById(id);
@@ -280,11 +328,42 @@ const approvePainting = async(id, paintingBody) => {
     
 }
 
-// Từ chối
+// Phê duyệt bộ sưu tập
+const approveCollection = async(id, collectionBody) => {
+    try {
+        const { status, userIdApprove } = collectionBody;
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.')
+        }
+        await collection.update({ status, user_id_approve: userIdApprove})        
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra khi phê duyệt: " + error.message)
+    }
+
+}
+
+// Từ chối tác phẩm
 const rejectPainting = async(id, paintingBody) => {
     const { status, userIdApprove, rejectionReason } = paintingBody;
     const painting = await getPaintingById(id);
     await painting.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason});
+}
+
+// Từ chối bộ sưu tập
+const rejectCollection = async(id, collectionBody) => {
+    try {
+        const { status, userIdApprove, rejectionReason } = collectionBody;
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.')
+        }
+        await collection.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason });
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra khi từ chối phê duyệt: " + error.message)
+    }
 }
 
 // Xóa tác phẩm + ảnh kèm theo
@@ -339,6 +418,113 @@ const deletePainting = async(id) => {
     }
 }
 
+// gỡ tác phẩm khỏi bộ sưu tập
+const detachArtFromCollection = async(collectionId, artIds) => {
+    try {
+        for(const artId of artIds) {
+            const painting = await getPaintingById(artId);
+            const collection = await Collection.findByPk(collectionId);
+            const paintingCollection = await PaintingCollection.findOne({ where: { collection_id: collectionId, painting_id: artId }});
+            if(!paintingCollection){
+                throw new ApiError(StatusCodes.NOT_FOUND, `Không tìm thấy tác phẩm ${painting.name} trong bộ sưu tập ${collection.name}`)
+            };
+            const result = await paintingCollection.destroy();
+            if(!result) {
+                throw new ApiError(StatusCodes.BAD_REQUEST, `Xóa tác phẩm ${painting.name} khỏi bộ sưu tập ${collection.name} thất bại`);
+            };
+            // Nếu thành công thì tiếp tục vòng lặp để xóa các artId còn lại.
+        }
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR,  "Đã có lỗi xảy ra: " + error.message)
+    }
+}
+
+// gán tác phẩm khỏi bộ sưu tập
+const attachArtToCollection = async(collectionId, artIds) => {
+    try {
+        const paintings = await Painting.findAll({ where: { id: artIds}});
+        const arts = await PaintingCollection.findAll({ where: { painting_id: artIds }}); 
+        const collection = await Collection.findByPk(collectionId);
+        if(arts.length > 0) {
+            throw new ApiError(StatusCodes.BAD_REQUEST, `Tác phẩm ${paintings.map(el=> el.name)} đã có trong bộ sưu tập khác`)
+        }
+        for(const artId of artIds) {
+            const painting = await getPaintingById(artId);
+            const result = await PaintingCollection.create({ collection_id: collectionId, painting_id: artId });
+            if(!result) {
+                throw new ApiError(StatusCodes.BAD_REQUEST, `Gán tác phẩm ${painting.name} khỏi bộ sưu tập ${collection.name} thất bại`);
+            };
+            // Nếu thành công thì tiếp tục vòng lặp để gán các artId còn lại.
+        }
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR,  "Đã có lỗi xảy ra: " + error.message)
+    }
+}
+
+// lấy chi tiết bộ sưu tập có tác phẩm bên trong
+const getCollectionHasArtById = async (id) => {
+    try {
+        const collectionFromDB = await Collection.findByPk(id, {
+            include: [
+                {
+                    model: PaintingCollection,
+                    as: 'collectionPaintings',
+                    include: [
+                        {
+                            model: Painting,
+                            as: 'painting',
+                            include: [
+                                {
+                                    model: ImagePainting,
+                                    as: 'paintingImage',
+                                    include: [
+                                        {
+                                            model: Image,
+                                            as: 'images'
+                                        }
+                                    ]
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ]
+        }); 
+        if(!collectionFromDB) {
+            throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bộ sưu tập.");
+        }
+        const newCollection = collectionFromDB.toJSON();
+        const paintings  = (collectionFromDB.collectionPaintings ?? [])
+            .filter((el) => el.collection_id === newCollection.id)
+            .map((el) => el.painting); 
+        const collection = {
+            id: newCollection.id,
+            name: newCollection.name,
+            imageUrl: newCollection.image_url,
+            nameImage: newCollection.name_image,
+            description: newCollection.description,
+            status: newCollection.status,
+            createdAt: newCollection.createdAt,
+            updatedAt: newCollection.updatedAt,
+            rejectionReason: newCollection.rejection_reason,
+            isPublished: newCollection.is_published,
+            tags: newCollection.tags,
+            curatorId: newCollection.curator_id,
+                // paintings,
+            arts: getPainting(paintings),
+        }
+        return collection;
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+    }
+
+    
+} 
+
+// export các hàm
 module.exports = {
     createPainting,
     queryListPaintings,
@@ -349,5 +535,11 @@ module.exports = {
     rejectPainting,
     deletePainting,
     createCollection,
-    queryListCollections
+    queryListCollections,
+    detachArtFromCollection,
+    getCollectionHasArtById,
+    attachArtToCollection,
+    sendCollectionApproval,
+    updateCollection,
+    rejectCollection
 }

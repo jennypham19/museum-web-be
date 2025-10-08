@@ -58,6 +58,33 @@ const createCollection = {
   }),
 };
 
+// Chỉnh sửa bộ sưu tập
+const updateCollection = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required()
+  }),
+  body: Joi.object().keys({
+    name: Joi.string().required().messages({
+      'string.empty': 'Tên không được để trống.',
+      'any.required': 'Tên là trường bắt buộc.',
+    }),
+    tags: Joi.string().required().messages({
+      'string.empty': 'Chủ đề không được để trống.',
+      'any.required': 'Chủ đề là trường bắt buộc.',
+    }),
+    imageUrl: Joi.string().required().messages({
+        'string.empty': 'Đường dẫn ảnh không được để trống.',
+        'any.required': 'Đường dẫn ảnh là bắt buộc.',
+    }),
+    description: Joi.string().required().messages({
+      'string.empty': 'Mô tả không được để trống.',
+      'any.required': 'Mô tả là trường bắt buộc.',
+    }),
+    nameImage: Joi.string().optional(),
+    curatorId: Joi.number().integer().required()
+  }),
+};
+
 // Lấy ra danh sách + search
 const getQuery = {
     query: Joi.object().keys({
@@ -97,7 +124,7 @@ const publishPainting = {
 }
 
 // Từ chối
-const rejectPainting = {
+const rejectApproval = {
   params: Joi.object().keys({
     id: Joi.number().integer().required()
   }),
@@ -108,12 +135,24 @@ const rejectPainting = {
   })
 }
 
+
+// Gỡ/ gán tác phẩm khỏi/ vào bộ sưu tập
+const detachOrAttachArtToCollection = {
+  params: Joi.object().keys({
+    collectionId: Joi.number().integer().required()
+  }),
+  body: Joi.object().keys({
+    artIds: Joi.array().items(Joi.number().integer()).required()
+  })
+}
 module.exports = {
     createPainting,
     getQuery,
     getId,
     sendApproval,
     publishPainting,
-    rejectPainting,
-    createCollection
+    rejectApproval,
+    createCollection,
+    detachOrAttachArtToCollection,
+    updateCollection
 }
