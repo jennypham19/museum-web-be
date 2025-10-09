@@ -4,6 +4,7 @@ const { sequelize, Painting, Image, ImagePainting, Collection, PaintingCollectio
 const { Op, col } = require("sequelize");
 const cloudinary = require("../config/cloudinary");
 
+{/* --------------------------- 1. TÁC PHẨM --------------------------- */}
 // Thêm mới tác phẩm
 const createPainting = async (paintingBody) => {
     const transaction = await sequelize.transaction();
@@ -32,52 +33,6 @@ const createPainting = async (paintingBody) => {
         }
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
-    }
-}
-
-// Thêm mới bộ sưu tập
-const createCollection = async (collectionBody) => {
-    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
-    try {
-        // 1. Tạo collection
-        await Collection.create(
-            { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId },
-        )
-    } catch (error) {
-        if(error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
-    }
-}
-
-// Chỉnh sửa bộ sưu tập
-const updateCollection = async (id, collectionBody) => {
-    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
-    try {
-        const collection = await Collection.findByPk(id);
-        if(!collection){
-            throw new ApiError(StatusCodes.NOT_FOUND,  "Không tồn tại tác phẩm.")
-        }
-        
-        // Chỉ cho phép sửa bộ sưu tập đang ở trạng thái 'created' hoặc 'pending' hoặc 'rejected'
-        if(collection.status === 'approved' || collection.status === 'reviewing') {
-            throw new ApiError(StatusCodes.BAD_REQUEST, "Không thể sửa bộ sưu tập đang chờ phê duyệt hoặc đã được duyệt")
-        }
-
-        if(collection.status === 'created') {
-            await collection.update(
-                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'created' }
-            )    
-        }
-        if(collection.status === 'pending' || collection.status === 'rejected') {
-            await collection.update(
-                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'pending' }
-            ) 
-        }
-
-        return collection;
-    } catch (error) {
-        if(error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi chỉnh sửa: " + error.message);
     }
 }
 
@@ -164,6 +119,145 @@ const queryListPaintings = async(queryOptions) => {
         
     } catch (error) {
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Đã có lỗi khi lấy ra danh sách tác phẩm: ' + error.message);
+    }
+}
+
+// Lấy chi tiết 1 bản ghi
+const getPaintingById = async (id) => {
+    const painting = await Painting.findByPk(id);
+    if(!painting) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tác phẩm.')
+    }
+    return painting;
+}
+
+// Gửi phê duyệt tác phẩm
+const sendApproval = async(id, paintingBody) => {
+    const painting = await getPaintingById(id);
+    Object.assign(painting, paintingBody);
+    await painting.save();
+    return painting
+}
+
+// Đăng tải tác phẩm
+const publishPainting = async(id, paintingBody) => {
+    const painting = await getPaintingById(id);
+    Object.assign(painting, paintingBody);
+    await painting.save();
+    return painting
+}
+
+// Phê duyệt tác phẩm
+const approvePainting = async(id, paintingBody) => {
+    const { status, userIdApprove } = paintingBody;
+    const painting = await getPaintingById(id);
+    await painting.update({ status, user_id_approve: userIdApprove });
+    
+}
+
+// Từ chối tác phẩm
+const rejectPainting = async(id, paintingBody) => {
+    const { status, userIdApprove, rejectionReason } = paintingBody;
+    const painting = await getPaintingById(id);
+    await painting.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason});
+}
+
+// Xóa tác phẩm + ảnh kèm theo
+const deletePainting = async(id) => {
+    const transaction = await sequelize.transaction();
+    try {
+        // 1. Lấy ảnh trên Paintings và Images
+        const painting = await getPaintingById(id);
+
+        // Tìm tất cả các ảnh trong bảng ImagesPainting
+        const imagesPainting = await ImagePainting.findAll({ where: { painting_id: id }, transaction});
+
+        // Lấy ids ảnh trong bảng ImagesPainting
+        const imageIds = imagesPainting.map((imgs) => imgs.image_id);
+
+        // Lấy ảnh trong bảng Images
+        const images = await Image.findAll({ where: { id: imageIds }, transaction})
+
+        // Lấy publicIds trong bảng Images
+        const publicIds = images.map((imgs) => imgs.name);
+
+        if(!painting.name_image && publicIds.length === 0){
+            throw new ApiError(StatusCodes.NOT_FOUND, "Không có public_id hợp lệ để xóa")
+        }
+        // 2. Xoá trên Cloudinary (batch)
+        if(painting.name_image){
+            const result = await cloudinary.uploader.destroy(painting.name_image);
+            if(result.result !== 'ok' && result.result !== "not found") {
+                throw new ApiError(StatusCodes.BAD_REQUEST, `Xóa ảnh chính thất bại ${painting.name_image}`);
+            }
+        }
+        if(publicIds.length > 0) {
+            const cloudResult = await cloudinary.api.delete_resources(publicIds);
+            // Kiểm tra nếu Cloudinary fail bất kỳ ảnh nào 
+            const failed = Object.entries(cloudResult.deleted).filter( ([, status]) => status !== "deleted" ); 
+            if (failed.length > 0) { 
+                throw new ApiError(StatusCodes.BAD_REQUEST,`Xoá Cloudinary fail với: ${failed.map(([id]) => id).join(", ")}`); 
+            }
+        }
+        
+        // 3. Xóa trong DB (Images + ImagesPainting + Paintings)
+        await ImagePainting.destroy({ where: { painting_id: id }, transaction});
+        await Image.destroy({ where: { id: imageIds }, transaction });
+        await Painting.destroy({ where: { id }, transaction});
+
+        // 4. Commit transaction
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+    }
+}
+
+{/* --------------------------- 2. BỘ SƯU TẬP --------------------------- */}
+// Thêm mới bộ sưu tập
+const createCollection = async (collectionBody) => {
+    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
+    try {
+        // 1. Tạo collection
+        await Collection.create(
+            { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId },
+        )
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi thêm mới: " + error.message);
+    }
+}
+
+// Chỉnh sửa bộ sưu tập
+const updateCollection = async (id, collectionBody) => {
+    const { name, tags, imageUrl, description, nameImage, curatorId} = collectionBody;
+    try {
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND,  "Không tồn tại tác phẩm.")
+        }
+        
+        // Chỉ cho phép sửa bộ sưu tập đang ở trạng thái 'created' hoặc 'pending' hoặc 'rejected'
+        if(collection.status === 'approved' || collection.status === 'reviewing') {
+            throw new ApiError(StatusCodes.BAD_REQUEST, "Không thể sửa bộ sưu tập đang chờ phê duyệt hoặc đã được duyệt")
+        }
+
+        if(collection.status === 'created') {
+            await collection.update(
+                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'created' }
+            )    
+        }
+        if(collection.status === 'pending' || collection.status === 'rejected') {
+            await collection.update(
+                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'pending' }
+            ) 
+        }
+
+        return collection;
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Có lỗi xảy khi chỉnh sửa: " + error.message);
     }
 }
 
@@ -262,6 +356,8 @@ const queryListCollections = async(queryOptions) => {
                 isPublished: newCollection.is_published,
                 tags: newCollection.tags,
                 curatorId: newCollection.curator_id,
+                reasonSend: newCollection.reason_send,
+                note: newCollection.note,
                 // paintings,
                 arts: getPainting(paintings),
                 curator
@@ -282,23 +378,6 @@ const queryListCollections = async(queryOptions) => {
     }
 }
 
-// Lấy chi tiết 1 bản ghi
-const getPaintingById = async (id) => {
-    const painting = await Painting.findByPk(id);
-    if(!painting) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Không tìm thấy tác phẩm.')
-    }
-    return painting;
-}
-
-// Gửi phê duyệt tác phẩm
-const sendApproval = async(id, paintingBody) => {
-    const painting = await getPaintingById(id);
-    Object.assign(painting, paintingBody);
-    await painting.save();
-    return painting
-}
-
 // Gửi phê duyệt bộ sưu tập
 const sendCollectionApproval = async(id, collectionBody) => {
     try {
@@ -311,21 +390,6 @@ const sendCollectionApproval = async(id, collectionBody) => {
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
     }
-}
-// Đăng tải
-const publishPainting = async(id, paintingBody) => {
-    const painting = await getPaintingById(id);
-    Object.assign(painting, paintingBody);
-    await painting.save();
-    return painting
-}
-
-// Phê duyệt tác phẩm
-const approvePainting = async(id, paintingBody) => {
-    const { status, userIdApprove } = paintingBody;
-    const painting = await getPaintingById(id);
-    await painting.update({ status, user_id_approve: userIdApprove });
-    
 }
 
 // Phê duyệt bộ sưu tập
@@ -344,13 +408,6 @@ const approveCollection = async(id, collectionBody) => {
 
 }
 
-// Từ chối tác phẩm
-const rejectPainting = async(id, paintingBody) => {
-    const { status, userIdApprove, rejectionReason } = paintingBody;
-    const painting = await getPaintingById(id);
-    await painting.update({ status, user_id_approve: userIdApprove, rejection_reason: rejectionReason});
-}
-
 // Từ chối bộ sưu tập
 const rejectCollection = async(id, collectionBody) => {
     try {
@@ -363,58 +420,6 @@ const rejectCollection = async(id, collectionBody) => {
     } catch (error) {
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra khi từ chối phê duyệt: " + error.message)
-    }
-}
-
-// Xóa tác phẩm + ảnh kèm theo
-const deletePainting = async(id) => {
-    const transaction = await sequelize.transaction();
-    try {
-        // 1. Lấy ảnh trên Paintings và Images
-        const painting = await getPaintingById(id);
-
-        // Tìm tất cả các ảnh trong bảng ImagesPainting
-        const imagesPainting = await ImagePainting.findAll({ where: { painting_id: id }, transaction});
-
-        // Lấy ids ảnh trong bảng ImagesPainting
-        const imageIds = imagesPainting.map((imgs) => imgs.image_id);
-
-        // Lấy ảnh trong bảng Images
-        const images = await Image.findAll({ where: { id: imageIds }, transaction})
-
-        // Lấy publicIds trong bảng Images
-        const publicIds = images.map((imgs) => imgs.name);
-
-        if(!painting.name_image && publicIds.length === 0){
-            throw new ApiError(StatusCodes.NOT_FOUND, "Không có public_id hợp lệ để xóa")
-        }
-        // 2. Xoá trên Cloudinary (batch)
-        if(painting.name_image){
-            const result = await cloudinary.uploader.destroy(painting.name_image);
-            if(result.result !== 'ok' && result.result !== "not found") {
-                throw new ApiError(StatusCodes.BAD_REQUEST, `Xóa ảnh chính thất bại ${painting.name_image}`);
-            }
-        }
-        if(publicIds.length > 0) {
-            const cloudResult = await cloudinary.api.delete_resources(publicIds);
-            // Kiểm tra nếu Cloudinary fail bất kỳ ảnh nào 
-            const failed = Object.entries(cloudResult.deleted).filter( ([, status]) => status !== "deleted" ); 
-            if (failed.length > 0) { 
-                throw new ApiError(StatusCodes.BAD_REQUEST,`Xoá Cloudinary fail với: ${failed.map(([id]) => id).join(", ")}`); 
-            }
-        }
-        
-        // 3. Xóa trong DB (Images + ImagesPainting + Paintings)
-        await ImagePainting.destroy({ where: { painting_id: id }, transaction});
-        await Image.destroy({ where: { id: imageIds }, transaction });
-        await Painting.destroy({ where: { id }, transaction});
-
-        // 4. Commit transaction
-        await transaction.commit();
-    } catch (error) {
-        await transaction.rollback();
-        if(error instanceof ApiError) throw error;
-        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
     }
 }
 
@@ -524,6 +529,26 @@ const getCollectionHasArtById = async (id) => {
     
 } 
 
+// Gửi yêu cầu lên admin
+const sendCollectionForAdmin = async (id, collectionBody) => {
+    try {
+        const { status, userIdSend, reasonSend, note } = collectionBody;
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.')
+        }
+        await collection.update({ status, user_id_send: userIdSend, reason_send: reasonSend, note: note });
+        return {
+            name: collection.name,
+            reasonSend: collection.reason_send,
+            sentBy: collection.user_id_send
+        }
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra khi từ chối phê duyệt: " + error.message)
+    }
+}
+
 // export các hàm
 module.exports = {
     createPainting,
@@ -541,5 +566,7 @@ module.exports = {
     attachArtToCollection,
     sendCollectionApproval,
     updateCollection,
-    rejectCollection
+    rejectCollection,
+    approveCollection,
+    sendCollectionForAdmin
 }

@@ -8,11 +8,43 @@ const router = express.Router();
 
 router.use(protect, authorize('employee', 'admin', 'mod'));
 
+{/* --------------------------- 1. TÁC PHẨM --------------------------- */}
 // Thêm mới tác phẩm
 router
     .route('/create-painting')
     .post(validate(displayValidation.createPainting), displayController.createPainting)
 
+// Lấy ra danh sách + search tác phẩm
+router
+    .route('/get-list-paintings')
+    .get(validate(displayValidation.getQuery), displayController.getListPaintings)
+
+// Gửi phê duyệt tác phẩm
+router
+    .route('/send-approval-painting/:id')
+    .patch(validate(displayValidation.sendApproval), displayController.sendApproval)
+
+// Đăng tải tác phẩm
+router
+    .route('/publish-painting/:id')
+    .patch(validate(displayValidation.publishPainting), displayController.publishPainting)
+
+// Duyệt tác phẩm
+router
+    .route('/approve-painting/:id')
+    .put(validate(displayValidation.sendApproval), displayController.approvePainting)
+
+// Từ chối tác phẩm
+router 
+    .route('/reject-painting/:id')
+    .put(validate(displayValidation.rejectApproval), displayController.rejectPainting)
+
+// Xóa tác phẩm
+router
+    .route('/delete-painting/:id')
+    .delete(validate(displayValidation.getId), displayController.deletePainting)
+
+{/*--------------------------- 2. BỘ SƯU TẬP --------------------------- */}
 // Thêm mới bộ sưu tập
 router
     .route('/create-collection')
@@ -23,50 +55,25 @@ router
     .route('/update-collection/:id')
     .put(validate(displayValidation.updateCollection), displayController.updateCollection)
 
-    // Lấy ra danh sách + search tác phẩm
-router
-    .route('/get-list-paintings')
-    .get(validate(displayValidation.getQuery), displayController.getListPaintings)
-
 // Lấy ra danh sách + search bộ sưu tập
 router
     .route('/get-list-collections')
     .get(validate(displayValidation.getQuery), displayController.getListCollections)
-
-// Gửi phê duyệt tác phẩm
-router
-    .route('/send-approval-painting/:id')
-    .patch(validate(displayValidation.sendApproval), displayController.sendApproval)
 
 // Gửi phê duyệt bộ sưu tập
 router
     .route('/send-approval-collection/:id')
     .patch(validate(displayValidation.sendApproval), displayController.sendCollectionApproval)
 
-// Đăng tải
+// Duyệt bộ sưu tập
 router
-    .route('/publish-painting/:id')
-    .patch(validate(displayValidation.publishPainting), displayController.publishPainting)
-
-// Duyệt
-router
-    .route('/approve-painting/:id')
-    .put(validate(displayValidation.sendApproval), displayController.approvePainting)
-
-// Từ chối tác phẩm
-router 
-    .route('/reject-painting/:id')
-    .put(validate(displayValidation.rejectApproval), displayController.rejectPainting)
+    .route('/approve-collection/:id')
+    .put(validate(displayValidation.sendApproval), displayController.approveCollection)
 
 // Từ chối bộ sưu tập
 router
     .route('/reject-collection/:id')
     .put(validate(displayValidation.rejectApproval), displayController.rejectCollection)
-    
-// Xóa tác phẩm
-router
-    .route('/delete-painting/:id')
-    .delete(validate(displayValidation.getId), displayController.deletePainting)
 
 // Gỡ tác phẩm khỏi bộ sưu tập
 router
@@ -82,4 +89,9 @@ router
 router
     .route('/get-collection-has-art-by-id/:id')
     .get(validate(displayValidation.getId), displayController.getCollectionHasArtById)
+
+// Gửi yêu cầu bộ sưu tập lên admin
+router
+    .route('/send-collection/:id')
+    .put(validate(displayValidation.sendApprovalForAdmin), displayController.sendCollectionToAdmin)
 module.exports = router;

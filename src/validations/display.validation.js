@@ -145,6 +145,19 @@ const detachOrAttachArtToCollection = {
     artIds: Joi.array().items(Joi.number().integer()).required()
   })
 }
+
+// Gửi yêu cầu lên admin
+const sendApprovalForAdmin = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required()
+  }),
+  body: Joi.object().keys({
+    status: Joi.string().required(),
+    userIdSend: Joi.number().integer().required(),
+    reasonSend: Joi.string().required(),
+    note: Joi.string().optional().allow(null)
+  })
+}
 module.exports = {
     createPainting,
     getQuery,
@@ -154,5 +167,6 @@ module.exports = {
     rejectApproval,
     createCollection,
     detachOrAttachArtToCollection,
-    updateCollection
+    updateCollection,
+    sendApprovalForAdmin
 }
