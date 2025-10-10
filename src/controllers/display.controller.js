@@ -85,6 +85,12 @@ const rejectCollection = catchAsync(async (req, res) => {
     res.status(StatusCodes.OK).send({ success: true, message: 'Từ chối phê duyệt bộ sưu tập thành công.'})
 })
 
+// Đăng tải bộ sưu tập
+const publishCollection = catchAsync(async (req, res) => {
+    const collection = await displayService.publishCollection(req.params.id, req.body);
+    res.status(StatusCodes.OK).send({ success: true, message: collection.is_published ? 'Đăng tải thành công.' : 'Hủy đăng tải thành công'});
+})
+
 // Gỡ tác phẩm khỏi bộ sưu tập
 const detachArtFromCollection = catchAsync(async (req, res) => {
     await displayService.detachArtFromCollection(req.params.collectionId, req.body.artIds);
@@ -133,5 +139,6 @@ module.exports = {
     updateCollection,
     rejectCollection,
     approveCollection,
-    sendCollectionToAdmin
+    sendCollectionToAdmin,
+    publishCollection
 }

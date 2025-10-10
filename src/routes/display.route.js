@@ -75,6 +75,11 @@ router
     .route('/reject-collection/:id')
     .put(validate(displayValidation.rejectApproval), displayController.rejectCollection)
 
+// Đăng tải bộ sưu tập
+router
+    .route('/publish-collection/:id')
+    .patch(validate(displayValidation.publishPainting), displayController.publishCollection)
+
 // Gỡ tác phẩm khỏi bộ sưu tập
 router
     .route('/detach-art-from-collection/:collectionId')

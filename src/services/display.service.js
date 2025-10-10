@@ -250,7 +250,7 @@ const updateCollection = async (id, collectionBody) => {
         }
         if(collection.status === 'pending' || collection.status === 'rejected') {
             await collection.update(
-                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'pending' }
+                { name, tags, image_url: imageUrl, name_image: nameImage, description, curator_id: curatorId, status: 'pending', rejection_reason: null }
             ) 
         }
 
@@ -423,6 +423,22 @@ const rejectCollection = async(id, collectionBody) => {
     }
 }
 
+// Đăng tải bộ sưu tập
+const publishCollection = async(id, collectionBody) => {
+    try {
+        const collection = await Collection.findByPk(id);
+        if(!collection){
+            throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.')
+        }
+        Object.assign(collection, collectionBody);
+        await collection.save();
+        return collection
+    } catch (error) {
+        if(error instanceof ApiError) throw error;
+        throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra: " + error.message)
+    }
+}
+
 // gỡ tác phẩm khỏi bộ sưu tập
 const detachArtFromCollection = async(collectionId, artIds) => {
     try {
@@ -568,5 +584,6 @@ module.exports = {
     updateCollection,
     rejectCollection,
     approveCollection,
-    sendCollectionForAdmin
+    sendCollectionForAdmin,
+    publishCollection
 }
