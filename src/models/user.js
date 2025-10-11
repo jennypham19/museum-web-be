@@ -34,6 +34,18 @@ module.exports = (sequelize, DataTypes) => {
             User.hasMany(models.Collection, {
                 foreignKey: 'curator_id',
                 as: 'curatorCollection'
+            }),
+            User.hasMany(models.Event, {
+                foreignKey: 'user_id_approve',
+                as: 'userApproveEvent'
+            }),
+            User.hasMany(models.Event, {
+                foreignKey: 'user_id_send',
+                as: 'userSendEvent'
+            }),
+            User.hasMany(models.Event, {
+                foreignKey: 'curator_id',
+                as: 'curatorEvent'
             })
         }
     }

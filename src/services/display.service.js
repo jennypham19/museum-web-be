@@ -400,7 +400,13 @@ const approveCollection = async(id, collectionBody) => {
         if(!collection){
             throw new ApiError(StatusCodes.NOT_FOUND, 'Không tồn tại bản ghi.')
         }
-        await collection.update({ status, user_id_approve: userIdApprove})        
+        if(collection.status === 'pending') {
+            await collection.update({ status, user_id_approve: userIdApprove})        
+        }
+
+        if(collection.status === 'reviewing') {
+            await collection.update({ status, user_id_approve: userIdApprove, reason_send: null })
+        }
     } catch (error) {
         if(error instanceof ApiError) throw error;
         throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, "Đã có lỗi xảy ra khi phê duyệt: " + error.message)
